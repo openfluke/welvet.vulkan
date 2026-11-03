@@ -88,7 +88,7 @@ Exact tensor bits vs Go (+ cpp speed column when present). Stack has no leaf for
 | GDN | ✅ f32 truncated-BPTT NormalBP leaf+vol |
 | Tween / TweenChain / Split / Alt / proxy / mesh variants | ✅ ModeTween…MeshTweenSplitSparse + StepTweenSplit proxies + Freeze/Shadow / CamSync signed |
 | Scheduling and data movement | Host validation, scheduling, allocation, copies and storage staging (permitted) |
-| GPU-only enforcement | ✅ Numerical TrainModes via Vulkan compute / declared host-libm leaves; no silent CPU fallback labeled Vulkan |
+| GPU-only enforcement | ✅ Numerical TrainModes via Vulkan compute; Softmax/SwiGLU/MHA on GPU; remaining host numerics only in LSTM/RNN/Mamba/GDN layer files (see VULKAN_ONLY.md) |
 
 **Project parity target:** best-effort deterministic agreement with Go, aiming
 for 100% and accepting 60–100% on w2a's spectrum (`industry` through `exact_bit`).
@@ -1980,6 +1980,7 @@ Run: `./scripts/linux_build_w2a.sh --training-25-29-all`.
 
 | Tag | Meaning |
 |-----|---------|
-| **0.00** (M0) | Vulkan host scaffold (device / buffers / smoke saxpy / C ABI / gaps). Engine board **0 / 100**. Training checklist mirrored from welvet.cuda — **all rows unchecked**. Climb toward cuda **0.79**. |
+| **0.00** (M0) | Vulkan host scaffold (device / buffers / smoke saxpy / C ABI / gaps). |
+| **0.79** | Train ladder + Go `nativevulkan` pin (Welvet **v1.6.0**). Full TRAINING_CHECKLIST signed; residency/perf remain separate gates. |
 
 Prior cuda tags (0.13…0.79) are **not** inherited. Re-earn each gate on Vulkan evidence.

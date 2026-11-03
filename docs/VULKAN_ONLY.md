@@ -24,6 +24,11 @@ numerical fallback** labeled as Vulkan.
 Everything else (NormalBP, volume, train modes, …) is gap until ticked in
 [TRAINING_CHECKLIST.md](TRAINING_CHECKLIST.md) and the [README runway](../README.md).
 
+**Leaf dispatch note:** Softmax, SwiGLU SiLU⊙, and MHA attention forward/backward run on
+Vulkan compute shaders via `src/vulkan/launches.cpp` (not host libm). Some other layer
+implementations still evaluate numerics on the host today — notably **LSTM**, **RNN**,
+**Mamba**, and **GDN** under `src/layers/` — until dedicated compute kernels land.
+
 ## Non-negotiable
 
 - Supported numerical forward/backward/training paths run on **Vulkan**.

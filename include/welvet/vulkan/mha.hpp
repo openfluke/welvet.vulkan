@@ -4,7 +4,7 @@
 
 namespace welvet::vulkan {
 
-// ModeSelf attention forward on host libm f64 (Q/K/V/O Dense stay on Vulkan).
+// ModeSelf attention forward on Vulkan compute (Q/K/V/O Dense matvec stays on Vulkan).
 // q/k/v_host: dense projection outputs [batch*seq, q_dim|kv_dim] as f32.
 // attn_host:  [batch*seq, q_dim] f32 out.
 // Config ints mirror metal op_attention / welvet.cpp attn_forward.
@@ -14,7 +14,7 @@ Status launch_mha_attention_forward(const float* q_host, const float* k_host, co
                                     int pos, int softmax, int window, int prefix_len,
                                     int window_causal, double rope_theta, double scale_override);
 
-// ModeSelf attention backward on host libm f64 (+ RoPEᵀ). Matches welvet.cpp attn_backward.
+// ModeSelf attention backward on Vulkan compute (+ RoPEᵀ). Matches welvet.cpp attn_backward.
 // Inputs: q/k/v_host projections + grad_attn [batch*seq, q_dim].
 // Outputs: gQ [bs,q_dim], gK/gV [bs,kv_dim] as f32 (per-token layout).
 Status launch_mha_attention_backward(const float* q_host, const float* k_host, const float* v_host,
