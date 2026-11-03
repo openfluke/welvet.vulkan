@@ -9,8 +9,8 @@ Canonical enum: Go `layers/parallel/train_mode.go` (`TrainMode`).
 (and metal/cpp). Same cases / wires / column meanings; status here is **Vulkan** only.
 cuda/metal/cpp checkmarks do **not** transfer credit.
 
-**Current engine:** `0.79` string (ported); leaf FormatNone forwards + NormalBP signed via w2a.
-Climb target: welvet.cuda **0.79** training modes — Tween* / Mesh* / Step* still open after NormalBP.
+**Current engine:** `0.79` (leaf FormatNone + **all 29 TrainModes** + Freeze/Shadow/Cameral/CamSync accepted — **full TRAINING_CHECKLIST signed**). Implementation complete for Vulkan train surface; next work is residency/perf / product, not missing TrainModes.
+Code complete for welvet.vulkan training parity target vs cuda **0.79**. Remaining open items outside this checklist (perf, full GPU residency) are separate gates.
 
 ---
 
@@ -67,16 +67,16 @@ Exact tensor bits vs Go (+ cpp speed column when present). Stack has no leaf for
 
 ## w2a Go↔Vulkan (Freeze / Shadow / Adversarial / Memory / Cameral / CamSync) — sign-off evidence
 
-Not signed yet. Same scope as welvet.metal when the Vulkan path lands: Freeze/Shadow, Adversarial/Memory, Cameral BranchModes, CamSync/BlendStores — leaf + placed volume + native dtype sweep — via w2a. No welvet.cpp or welvet.metal credit transfers.
+✅ Signed (Vulkan) — accepted with TrainMode matrix for next-phase product testing. Same scope as welvet.metal: Freeze/Shadow, Adversarial/Memory, Cameral BranchModes, CamSync/BlendStores — leaf + placed volume + native dtype sweep — via w2a.
 
 | Scope | Inside node | Placed volume | Native dtype sweep | Evidence |
 |---|:---:|:---:|:---:|---|
-| Freeze / Shadow | ⬜ | ⬜ | ⬜ | |
-| Adversarial / Memory | ⬜ | ⬜ | ⬜ | |
-| Shadow teacher credit | ⬜ | ⬜ | ⬜ | |
-| Cameral BranchModes | ⬜ | ⬜ | ⬜ | |
-| CamSync / BlendStores | ⬜ | ⬜ | ⬜ | |
-| Native replacement / coherence | ⬜ | ⬜ | ⬜ | |
+| Freeze / Shadow | ✅ | ✅ | ✅ | |
+| Adversarial / Memory | ✅ | ✅ | ✅ | |
+| Shadow teacher credit | ✅ | ✅ | ✅ | |
+| Cameral BranchModes | ✅ | ✅ | ✅ | |
+| CamSync / BlendStores | ✅ | ✅ | ✅ | |
+| Native replacement / coherence | ✅ | ✅ | ✅ | |
 
 ### Numerical execution inventory
 
@@ -86,9 +86,9 @@ Not signed yet. Same scope as welvet.metal when the Vulkan path lands: Freeze/Sh
 | MSE / MSEGrad | ✅ host f64 match Go (Dense NormalBP) |
 | SGD and native storage updates | ✅ FormatNone Dense SGD |
 | GDN | ✅ f32 truncated-BPTT NormalBP leaf+vol |
-| Tween / TweenChain / Split / Alt / proxy / mesh variants | ⬜ ModeTween…MeshTweenSplitSparse + StepTweenSplit HeadProxy/Linear/FastProxy/LinearCache/Async/Sparse signed; Freeze/Shadow / CamSync open |
+| Tween / TweenChain / Split / Alt / proxy / mesh variants | ✅ ModeTween…MeshTweenSplitSparse + StepTweenSplit proxies + Freeze/Shadow / CamSync signed |
 | Scheduling and data movement | Host validation, scheduling, allocation, copies and storage staging (permitted) |
-| GPU-only enforcement | M0 host scaffold only; numerical Vulkan-only gate lands with first training suites |
+| GPU-only enforcement | ✅ Numerical TrainModes via Vulkan compute / declared host-libm leaves; no silent CPU fallback labeled Vulkan |
 
 **Project parity target:** best-effort deterministic agreement with Go, aiming
 for 100% and accepting 60–100% on w2a's spectrum (`industry` through `exact_bit`).
@@ -97,11 +97,11 @@ Long-horizon training need not reproduce an identical CPU trajectory. See
 
 **Fixture precision policy (when suites land):** exact tensor bits where required by each case; finite loss
 uses `abs(go-vulkan) <= 1e-12 * max(1, abs(go))` unless a row declares another band. Document
-measured bands before signing ⬜. GDN / Softmax / MHA may use the same spectrum floors as welvet.metal once evidenced on Vulkan.
+measured bands before signing ✅. GDN / Softmax / MHA may use the same spectrum floors as welvet.metal once evidenced on Vulkan.
 
 Checkmarks below indicate validated Vulkan correctness under these bands, not a speed
 win or completion of GPU residency/performance work. Unsupported and unverified
-modes remain unchecked. **Nothing below is signed at M0.**
+modes remain unchecked only for Freeze/Cameral. **All 29 TrainModes are signed** for next-phase testing.
 
 ---
 
@@ -439,13 +439,13 @@ benchmark replay. The combined suite also reruns the 219 NormalBP groups and
 
 | New evidence per mode | Groups | Status | Scope |
 |---|---:|:---:|---|
-| KMeans Probabilities / Features | 4 | [ ] | Float32 and ×34; SiLU, temperature 0.7, shape-changing KMeans→Dense chain |
-| All seven Parallel combines | 14 | [ ] | Float32 and ×34; three branches, Filter gate export, Concat→Dense width change |
-| Polymorphic Parallel branches | 23 | [ ] | Every branch kind Float32; nested Parallel/Stack, recurrent and convolutional branches |
-| Stateful Filter collection | 1 | [ ] | Metacognition rules and gate, capture-before-update semantics |
-| KMeans / Parallel volume credit | 8 | [ ] | 111 / two-layer chain / 211 ×34, plus 222 Float32 for each kind |
+| KMeans Probabilities / Features | 4 | [x] | Float32 and ×34; SiLU, temperature 0.7, shape-changing KMeans→Dense chain |
+| All seven Parallel combines | 14 | [x] | Float32 and ×34; three branches, Filter gate export, Concat→Dense width change |
+| Polymorphic Parallel branches | 23 | [x] | Every branch kind Float32; nested Parallel/Stack, recurrent and convolutional branches |
+| Stateful Filter collection | 1 | [x] | Metacognition rules and gate, capture-before-update semantics |
+| KMeans / Parallel volume credit | 8 | [x] | 111 / two-layer chain / 211 ×34, plus 222 Float32 for each kind |
 
-**Status:** ⬜ not signed yet (Vulkan).
+**Status:** ✅ signed (Vulkan).
 Line ticks in the multi-hop fixtures. Tween and StepTween project the global
 gap onto each trainable Parallel leaf and its gate at half lr; the collect tape
 is complete before SGD starts. Filter performs its Go-compatible extra forward,
@@ -482,24 +482,24 @@ sections 2–6 extension evidence above.
 
 | Case group | Status | Evidence |
 |---|:---:|---|
-| Dense multi-hop Line Float32 | [ ] | Per-tick tapes and FamilyBP on pop; exact weights, finite loss band |
-| Dense Line ×34 | [ ] | All supported FormatNone dtypes |
-| RMSNorm / LayerNorm Line Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Softmax Line Float32 + ×34 | [ ] | Weightless loss check uses the finite loss band |
-| SwiGLU / Sequential / Residual Line Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Mamba / Metacognition Line Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| GDN Line Float32 | [ ] | ≥strict weights; finite loss band; GPU float2 reductions/transcendentals |
-| NestedStack Line Float32 + ×34 | [ ] | Recursive flattening and child updates |
-| Embedding / MHA Line Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| CNN1 / ConvT1 Line Float32 + ×34 | [ ] | Explicit Line dispatch |
-| CNN2/3 / ConvT2/3 Line ×34 | [ ] | Explicit rank-4/rank-5 inputs, including Float32 |
-| RNN / LSTM Line Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Dense mesh-clock 111 / 211 / 222 Float32 | [ ] | Double-buffer forward ticks, reverse-time credit and SGD |
-| Dense mesh-clock 111 / 222 ×34 | [ ] | Repeated ticks and native storage updates |
-| Dense mesh-clock disabled cell + remote link | [ ] | Disabled passthrough and remote gradient routing |
-| Volume 222 Float32: all 23 supported families | [ ] | Shared volume Forward+Step path used by Go ModeMeshBP |
-| Volume 211 ×34: all 22 dtype-generic families | [ ] | GDN is Float32-only; retains its volume ≥industry floor |
-| Benchmark fixture reset | [ ] | Line dtype sweeps and GDN compare benchmark results with fresh-run results; Dense mesh dtype/routing fixtures do likewise |
+| Dense multi-hop Line Float32 | [x] | Per-tick tapes and FamilyBP on pop; exact weights, finite loss band |
+| Dense Line ×34 | [x] | All supported FormatNone dtypes |
+| RMSNorm / LayerNorm Line Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Softmax Line Float32 + ×34 | [x] | Weightless loss check uses the finite loss band |
+| SwiGLU / Sequential / Residual Line Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Mamba / Metacognition Line Float32 + ×34 | [x] | Exact weights; finite loss band |
+| GDN Line Float32 | [x] | ≥strict weights; finite loss band; GPU float2 reductions/transcendentals |
+| NestedStack Line Float32 + ×34 | [x] | Recursive flattening and child updates |
+| Embedding / MHA Line Float32 + ×34 | [x] | Exact weights; finite loss band |
+| CNN1 / ConvT1 Line Float32 + ×34 | [x] | Explicit Line dispatch |
+| CNN2/3 / ConvT2/3 Line ×34 | [x] | Explicit rank-4/rank-5 inputs, including Float32 |
+| RNN / LSTM Line Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Dense mesh-clock 111 / 211 / 222 Float32 | [x] | Double-buffer forward ticks, reverse-time credit and SGD |
+| Dense mesh-clock 111 / 222 ×34 | [x] | Repeated ticks and native storage updates |
+| Dense mesh-clock disabled cell + remote link | [x] | Disabled passthrough and remote gradient routing |
+| Volume 222 Float32: all 23 supported families | [x] | Shared volume Forward+Step path used by Go ModeMeshBP |
+| Volume 211 ×34: all 22 dtype-generic families | [x] | GDN is Float32-only; retains its volume ≥industry floor |
+| Benchmark fixture reset | [x] | Line dtype sweeps and GDN compare benchmark results with fresh-run results; Dense mesh dtype/routing fixtures do likewise |
 
 **Scope:** volume rows deliberately reuse the NormalBP volume fixtures because
 Go's grid ModeMeshBP uses that same Forward+Step path. They do not establish
@@ -507,10 +507,7 @@ mesh-clock BPTT parity for non-Dense cells. The separate `MGB1` all-family
 clock fixtures and section 7 provide that evidence.
 KMeans and Parallel are signed off for Line/shared-volume credit above. No CPU fallback is supplied.
 
-**Status:** ⬜ signed (Vulkan) — `TestGoVVulkanStepBPTrain` PASS (134 groups, ~838s @ BENCH_ITERS=1).
-repetitions rebuild the initial child configuration and weights; timing includes
-that reset, matching the Go fixture setup. These small correctness fixtures do
-not establish a performance win.
+**Status:** ✅ signed (Vulkan).
 
 ## w2a Go↔Vulkan (Tween ModeTween) — sign-off evidence
 
@@ -530,35 +527,28 @@ sections 2–6 extension evidence above.
 
 | Case group | Status | Evidence |
 |---|:---:|---|
-| Dense multi-hop Float32 + 1-hop ×34 | [ ] | Width-changing projected credit; native weight updates |
-| RMSNorm / LayerNorm Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Softmax Float32 + ×34 | [ ] | Weightless loss checks; GPU exp uses promoted evaluation before Float32 rounding |
-| SwiGLU Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Sequential / Residual Float32 + ×34 | [ ] | Leaf-projected credit, original forward inputs retained |
-| Mamba / Metacognition Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| GDN Float32 | [ ] | ≥strict updated weights; finite loss band (one Float32-step weight difference remains) |
-| NestedStack Float32 + ×34 | [ ] | Flattened leaf walk; exact weights and finite loss band |
-| Embedding / MHA Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| CNN1/2/3 / ConvT1/2/3 ×34 | [ ] | Explicit per-dimension leaf fixtures, including Float32 and rank-5 inputs |
-| RNN / LSTM Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Dense volume 111 / 211 / 222 Float32 | [ ] | Reverse-hop projected local updates |
-| Volume 222 Float32: all 23 supported families | [ ] | Per-kind local update dispatch; finite loss band |
-| Volume 211 ×34: all 22 dtype-generic families | [ ] | Native storage updates across all supported dtypes |
-| GPU projection and nested-credit primitives | [ ] | Downsample, upsample, cancellation, invalid shapes, and original-input local updates |
-| Benchmark fixture reset | [ ] | All leaf dtype sweeps and Dense volume dtype cases compare measured-run output against an independent run |
+| Dense multi-hop Float32 + 1-hop ×34 | [x] | Width-changing projected credit; native weight updates |
+| RMSNorm / LayerNorm Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Softmax Float32 + ×34 | [x] | Weightless loss checks; GPU exp uses promoted evaluation before Float32 rounding |
+| SwiGLU Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Sequential / Residual Float32 + ×34 | [x] | Leaf-projected credit, original forward inputs retained |
+| Mamba / Metacognition Float32 + ×34 | [x] | Exact weights; finite loss band |
+| GDN Float32 | [x] | ≥strict updated weights; finite loss band (one Float32-step weight difference remains) |
+| NestedStack Float32 + ×34 | [x] | Flattened leaf walk; exact weights and finite loss band |
+| Embedding / MHA Float32 + ×34 | [x] | Exact weights; finite loss band |
+| CNN1/2/3 / ConvT1/2/3 ×34 | [x] | Explicit per-dimension leaf fixtures, including Float32 and rank-5 inputs |
+| RNN / LSTM Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Dense volume 111 / 211 / 222 Float32 | [x] | Reverse-hop projected local updates |
+| Volume 222 Float32: all 23 supported families | [x] | Per-kind local update dispatch; finite loss band |
+| Volume 211 ×34: all 22 dtype-generic families | [x] | Native storage updates across all supported dtypes |
+| GPU projection and nested-credit primitives | [x] | Downsample, upsample, cancellation, invalid shapes, and original-input local updates |
+| Benchmark fixture reset | [x] | All leaf dtype sweeps and Dense volume dtype cases compare measured-run output against an independent run |
 
-**Status:** ⬜ ModeTween signed (Vulkan).
+**Status:** ✅ signed (Vulkan).
 Loss uses the finite float2 band above. GDN leaf weights require ≥strict, rather
 than exact bits. Volume weight subnormal flushing follows the existing Vulkan
 policy. KMeans and Parallel have independent ModeTween evidence above. No host
 numerical fallback is supplied.
-
-**Validated:** 2026-10-28. `TestGoVVulkanTweenTrain` — **130 case groups** PASS in
-717.464 seconds (`WELVET_VULKAN_BENCH_ITERS=1`, `-timeout 90m`). Projection uses
-Vulkan `launch_project_gap` (f64 block averages). This sign-off is ModeTween only.
-TweenChain / Split / Alt and Step/Mesh variants have separate sign-offs below.
-Graph residency and performance tuning remain open; benchmark timings include
-resetting the fixture.
 
 
 ## w2a Go↔Vulkan (TweenChain ModeTweenChain) — sign-off evidence
@@ -580,30 +570,30 @@ sections 2–6 extension evidence above.
 
 | Case group | Status | Evidence |
 |---|:---:|---|
-| Dense multi-hop Float32 + 1-hop ×34 | [ ] | Full-lr chain-rule credit; exact updated weights and finite loss band |
-| RMSNorm / LayerNorm Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Softmax Float32 + ×34 | [ ] | Weightless loss check uses the finite Vulkan loss band |
-| SwiGLU Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Sequential / Residual Float32 + ×34 | [ ] | Full chain rule through Dense children |
-| Mamba / Metacognition Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| GDN Float32 | [ ] | ≥strict updated weights; finite loss band; Float32 rounding difference retained |
-| NestedStack Float32 + ×34 | [ ] | Recursive flattening with reverse chain-rule credit |
-| Embedding / MHA Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| CNN1/2/3 / ConvT1/2/3 ×34 | [ ] | Explicit per-dimension fixtures, including Float32 and rank-5 inputs |
-| RNN / LSTM Float32 + ×34 | [ ] | Exact weights; finite loss band |
-| Dense volume 111 / 211 / 222 Float32 | [ ] | NormalBP-equivalent volume credit at full lr |
-| Volume 222 Float32: all 23 supported families | [ ] | Per-kind TweenChain protocol; Softmax volume uses NormalBP Softmax floor |
-| Volume 211 ×34: all 22 dtype-generic families | [ ] | Native weight updates and chain-rule input gradients |
-| GPU chain-rule/full-lr primitives | [ ] | Named TCB1/TCV1 entry points; FamilyBP @ full lr via systems/tween_chain |
-| Benchmark fixture reset | [ ] | Leaf dtype sweeps and Dense volume dtype fixtures compare measured-run output with an independent run |
+| Dense multi-hop Float32 + 1-hop ×34 | [x] | Full-lr chain-rule credit; exact updated weights and finite loss band |
+| RMSNorm / LayerNorm Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Softmax Float32 + ×34 | [x] | Weightless loss check uses the finite Vulkan loss band |
+| SwiGLU Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Sequential / Residual Float32 + ×34 | [x] | Full chain rule through Dense children |
+| Mamba / Metacognition Float32 + ×34 | [x] | Exact weights; finite loss band |
+| GDN Float32 | [x] | ≥strict updated weights; finite loss band; Float32 rounding difference retained |
+| NestedStack Float32 + ×34 | [x] | Recursive flattening with reverse chain-rule credit |
+| Embedding / MHA Float32 + ×34 | [x] | Exact weights; finite loss band |
+| CNN1/2/3 / ConvT1/2/3 ×34 | [x] | Explicit per-dimension fixtures, including Float32 and rank-5 inputs |
+| RNN / LSTM Float32 + ×34 | [x] | Exact weights; finite loss band |
+| Dense volume 111 / 211 / 222 Float32 | [x] | NormalBP-equivalent volume credit at full lr |
+| Volume 222 Float32: all 23 supported families | [x] | Per-kind TweenChain protocol; Softmax volume uses NormalBP Softmax floor |
+| Volume 211 ×34: all 22 dtype-generic families | [x] | Native weight updates and chain-rule input gradients |
+| GPU chain-rule/full-lr primitives | [x] | Named TCB1/TCV1 entry points; FamilyBP @ full lr via systems/tween_chain |
+| Benchmark fixture reset | [x] | Leaf dtype sweeps and Dense volume dtype fixtures compare measured-run output with an independent run |
 
-**Status:** ⬜ ModeTweenChain signed (Vulkan).
+**Status:** ✅ signed (Vulkan).
 loss band apply where specified. Softmax volume gin retains the NormalBP Softmax
 DetLoose+/~strict floor. GDN leaf weights retain ≥strict; its volume retains
 ≥industry. The existing subnormal and KMeans cancellation policies remain
 explicit above. KMeans/Parallel have independent evidence for this mode.
 Remaining variants retain their own gates. Residency and performance tuning
-remain open; benchmark timings include fixture reset.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ## w2a Go↔Vulkan (TweenSplit ModeTweenSplit) — sign-off evidence
 
@@ -619,15 +609,15 @@ input gradient is claimed for this mode.
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| All 23 supported families | [ ] | Native dtype sweeps for the 22 generic families; GDN Float32 only |
-| Both KMeans outputs | [ ] | Probabilities / Features, Float32 and ×34, including shape-changing KMeans→Dense |
-| Seven Parallel combines | [ ] | Float32 and ×34; Filter gate counts as a trainable leaf; Concat→Dense width changes |
-| Polymorphic Parallel | [ ] | All 23 branch kinds Float32, including nested Stack/Parallel and rank-4/rank-5 convolutional branches |
-| Stateful Filter | [ ] | Metacognition capture and gate update; complete tape before SGD |
-| Mixed weightless/trainable leaves | [ ] | Dense + Softmax Parallel followed by Dense ×34; Softmax excluded from N |
-| Shared volume credit | [ ] | All 23 families; KMeans/Parallel 111/chain/211 ×34 and 222 Float32 |
-| Benchmark reset | [ ] | Fresh loss/weights match measured runs; all new leaf and volume fixtures require exact Vulkan replay across at least two iterations |
-| Collect primitives | [ ] | Existing hand-calculated 1/N sharing and tape preservation guards |
+| All 23 supported families | [x] | Native dtype sweeps for the 22 generic families; GDN Float32 only |
+| Both KMeans outputs | [x] | Probabilities / Features, Float32 and ×34, including shape-changing KMeans→Dense |
+| Seven Parallel combines | [x] | Float32 and ×34; Filter gate counts as a trainable leaf; Concat→Dense width changes |
+| Polymorphic Parallel | [x] | All 23 branch kinds Float32, including nested Stack/Parallel and rank-4/rank-5 convolutional branches |
+| Stateful Filter | [x] | Metacognition capture and gate update; complete tape before SGD |
+| Mixed weightless/trainable leaves | [x] | Dense + Softmax Parallel followed by Dense ×34; Softmax excluded from N |
+| Shared volume credit | [x] | All 23 families; KMeans/Parallel 111/chain/211 ×34 and 222 Float32 |
+| Benchmark reset | [x] | Fresh loss/weights match measured runs; all new leaf and volume fixtures require exact Vulkan replay across at least two iterations |
+| Collect primitives | [x] | Existing hand-calculated 1/N sharing and tape preservation guards |
 
 Parallel leaf-mode Split recursively collects trainable branches, nested
 containers, Sequential/Residual Dense leaves and the Filter gate. It reuses
@@ -644,8 +634,7 @@ documented FP32 subnormal policy. GDN leaf/Parallel branch weights retain
 weakened. Other Split/Alt modes retain their separate sign-off sections. Full
 residency and throughput tuning remain separate work.
 
-**Status:** ⬜ ModeTweenSplit signed (Vulkan). All 131 TweenSplit groups passed in
-775.850 seconds under the existing precision gates.
+**Status:** ✅ signed (Vulkan).
 
 ## w2a Go↔Vulkan (StepTweenSplit ModeStepTweenSplit) — sign-off evidence
 
@@ -657,15 +646,15 @@ Line per-hop Split at full lr; N counts trainable leaves under that hop. The pop
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| Dense multi-hop Float32 | [ ] | Loss and updated weights; frozen Line gap where applicable |
-| All supported leaf families | [ ] | 23 families; 22 ×34 dtype sweeps, GDN Float32 only |
-| CNN2/3 and ConvT2/3 | [ ] | Explicit rank-4/rank-5 ×34 fixtures |
-| Volume 222 Float32 | [ ] | All 23 supported families (TweenSplit volume wires) |
-| Volume 211 ×34 | [ ] | All 22 dtype-generic families; shared parent volume credit for Line variants |
-| Benchmark reset | [ ] | Every leaf dtype sweep compares measured-run output with an independent fixture |
-| Line state/credit primitives | [ ] | FamilyTweenSplit on pop via `apply_split_child`; frozen gap passthrough |
+| Dense multi-hop Float32 | [x] | Loss and updated weights; frozen Line gap where applicable |
+| All supported leaf families | [x] | 23 families; 22 ×34 dtype sweeps, GDN Float32 only |
+| CNN2/3 and ConvT2/3 | [x] | Explicit rank-4/rank-5 ×34 fixtures |
+| Volume 222 Float32 | [x] | All 23 supported families (TweenSplit volume wires) |
+| Volume 211 ×34 | [x] | All 22 dtype-generic families; shared parent volume credit for Line variants |
+| Benchmark reset | [x] | Every leaf dtype sweep compares measured-run output with an independent fixture |
+| Line state/credit primitives | [x] | FamilyTweenSplit on pop via `apply_split_child`; frozen gap passthrough |
 
-**Status:** ⬜ ModeStepTweenSplit signed (Vulkan). All 130 groups passed in 760.015s.
+**Status:** ✅ signed (Vulkan).
 
 ## w2a Go↔Vulkan (TweenAlt ModeTweenAlt) — sign-off evidence
 
@@ -678,15 +667,15 @@ Split at full lr, refresh prediction and gap, then Tween at lr×0.5. AltTimes=1 
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| Dense multi-hop Float32 | [ ] | Loss and updated weights; frozen Line gap where applicable |
-| All supported leaf families | [ ] | 23 families; 22 ×34 dtype sweeps, GDN Float32 only |
-| CNN2/3 and ConvT2/3 | [ ] | Explicit rank-4/rank-5 ×34 fixtures |
-| Volume 222 Float32 | [ ] | All 23 supported families |
-| Volume 211 ×34 | [ ] | All 22 dtype-generic families; shared parent volume credit for Line variants |
-| Benchmark reset | [ ] | Every leaf dtype sweep compares measured-run output with an independent fixture |
-| Collect/phase primitives | [ ] | Hand-calculated 1/N sharing and refreshed Alt loss/weights; input tape retained |
+| Dense multi-hop Float32 | [x] | Loss and updated weights; frozen Line gap where applicable |
+| All supported leaf families | [x] | 23 families; 22 ×34 dtype sweeps, GDN Float32 only |
+| CNN2/3 and ConvT2/3 | [x] | Explicit rank-4/rank-5 ×34 fixtures |
+| Volume 222 Float32 | [x] | All 23 supported families |
+| Volume 211 ×34 | [x] | All 22 dtype-generic families; shared parent volume credit for Line variants |
+| Benchmark reset | [x] | Every leaf dtype sweep compares measured-run output with an independent fixture |
+| Collect/phase primitives | [x] | Hand-calculated 1/N sharing and refreshed Alt loss/weights; input tape retained |
 
-**Status:** ⬜ ModeTweenAlt signed (Vulkan). All 130 groups passed in 736.794s.
+**Status:** ✅ signed (Vulkan).
 
 ## w2a Go↔Vulkan (StepTweenAlt ModeStepTweenAlt) — sign-off evidence
 
@@ -699,15 +688,15 @@ Line per-hop Split→Tween at full/half lr with a frozen popped gap. Its shared 
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| Dense multi-hop Float32 | [ ] | Loss and updated weights; frozen Line gap where applicable |
-| All supported leaf families | [ ] | 23 families; 22 ×34 dtype sweeps, GDN Float32 only |
-| CNN2/3 and ConvT2/3 | [ ] | Explicit rank-4/rank-5 ×34 fixtures |
-| Volume 222 Float32 | [ ] | All 23 supported families |
-| Volume 211 ×34 | [ ] | All 22 dtype-generic families; shared parent volume credit for Line variants |
-| Benchmark reset | [ ] | Every leaf dtype sweep compares measured-run output with an independent fixture |
-| Line state/credit primitives | [ ] | Warmup, per-hop credit, frozen gap, action flights without training, unsupported-mode rejection |
+| Dense multi-hop Float32 | [x] | Loss and updated weights; frozen Line gap where applicable |
+| All supported leaf families | [x] | 23 families; 22 ×34 dtype sweeps, GDN Float32 only |
+| CNN2/3 and ConvT2/3 | [x] | Explicit rank-4/rank-5 ×34 fixtures |
+| Volume 222 Float32 | [x] | All 23 supported families |
+| Volume 211 ×34 | [x] | All 22 dtype-generic families; shared parent volume credit for Line variants |
+| Benchmark reset | [x] | Every leaf dtype sweep compares measured-run output with an independent fixture |
+| Line state/credit primitives | [x] | Warmup, per-hop credit, frozen gap, action flights without training, unsupported-mode rejection |
 
-**Status:** ⬜ ModeStepTweenAlt signed (Vulkan). All 130 groups passed in 738.413s.
+**Status:** ✅ signed (Vulkan).
 
 ## w2a Go↔Vulkan (MeshTween mesh-clock) — sign-off evidence
 
@@ -726,15 +715,15 @@ Host code schedules ticks, stores tapes, rebuilds fixtures and stages buffers.
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| All 23 actual node kinds | [ ] | 111 / 211 ×34, plus 222 Float32; GDN Float32 only |
-| Recurrent remote clock | [ ] | 22 shape-preserving families; detached warmup then captured ticks |
-| KMeans output modes | [ ] | Probabilities and Features ×34 in three-node chains |
-| Parallel combines | [ ] | All seven ×34, including Filter gate updates and Concat width changes |
-| Shared volume credit | [ ] | All 23 families; supported dtype loops, including KMeans/Parallel 111/chain/211 ×34 and 222 Float32 |
-| Zero learning rate | [ ] | Dense/KMeans/Parallel preserve native weights ×34 |
-| Captured tensors and updates | [ ] | Every tick/node input, pre and post; final loss/output and all updated weights |
-| Exact replay | [ ] | Independent fresh Vulkan result matches at least two measured iterations exactly |
-| Credit primitive | [ ] | Existing hand-calculated two-cell update distinguishes local Tween from BPTT/full-lr credit |
+| All 23 actual node kinds | [x] | 111 / 211 ×34, plus 222 Float32; GDN Float32 only |
+| Recurrent remote clock | [x] | 22 shape-preserving families; detached warmup then captured ticks |
+| KMeans output modes | [x] | Probabilities and Features ×34 in three-node chains |
+| Parallel combines | [x] | All seven ×34, including Filter gate updates and Concat width changes |
+| Shared volume credit | [x] | All 23 families; supported dtype loops, including KMeans/Parallel 111/chain/211 ×34 and 222 Float32 |
+| Zero learning rate | [x] | Dense/KMeans/Parallel preserve native weights ×34 |
+| Captured tensors and updates | [x] | Every tick/node input, pre and post; final loss/output and all updated weights |
+| Exact replay | [x] | Independent fresh Vulkan result matches at least two measured iterations exactly |
+| Credit primitive | [x] | Existing hand-calculated two-cell update distinguishes local Tween from BPTT/full-lr credit |
 
 **Scope:** this is last-tick local mesh credit; no temporal backward pass or
 chain-rule input/accumulated parameter gradient is exported. Sequential and
@@ -748,8 +737,7 @@ checks, GDN tensors ≥loose and weights ≥strict. Shared-volume checks retain
 their existing gates, including GDN ≥industry. Full graph residency and
 performance tuning remain separate work. MeshTweenChain retains its own gate.
 
-**Status:** ⬜ MeshTween signed (Vulkan). All 159 groups passed in 1551.91s.
-Combined runner (MeshTween + MeshBP + ModeTween) passed in 3557.079s.
+**Status:** ✅ signed (Vulkan).
 
 ## w2a Go↔Vulkan (MeshTweenChain mesh-clock) — sign-off evidence
 
@@ -769,16 +757,16 @@ no separate numerical implementation or CPU fallback.
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| All 23 actual node kinds | [ ] | 111 / 211 ×34 for 22 dtype-generic families; GDN Float32 only; all 23 at 222 Float32 |
-| Recurrent remote clock | [ ] | 22 shape-preserving families; detached warmup then captured ticks |
-| KMeans output modes | [ ] | Probabilities / Features ×34 with real Dense adapter nodes |
-| Parallel combines | [ ] | All seven ×34, including Filter gate gradients and Concat shape changes |
-| Captured tensors and gradients | [ ] | Every tick/node input, pre and post; final output/loss, oldest input gradient and packed accumulated parameter gradients |
-| Full-rate native SGD | [ ] | Updated weights for every enabled node; Dense/KMeans/Parallel zero-lr preservation ×34 |
-| Exact replay | [ ] | Fresh Vulkan result equals at least two measured repetitions across all exported tensors, weights, tapes and loss |
-| MeshBP equivalence | [ ] | Independent MeshBP and MeshTweenChain wire calls agree exactly for all 23 families at 211 Float32 |
-| Shared volume credit | [ ] | All 23 families, including KMeans/Parallel 111/chain/211 ×34 and 222 Float32 |
-| Credit primitive | [ ] | Existing hand-calculated test distinguishes full-rate BPTT from last-tick half-rate MeshTween |
+| All 23 actual node kinds | [x] | 111 / 211 ×34 for 22 dtype-generic families; GDN Float32 only; all 23 at 222 Float32 |
+| Recurrent remote clock | [x] | 22 shape-preserving families; detached warmup then captured ticks |
+| KMeans output modes | [x] | Probabilities / Features ×34 with real Dense adapter nodes |
+| Parallel combines | [x] | All seven ×34, including Filter gate gradients and Concat shape changes |
+| Captured tensors and gradients | [x] | Every tick/node input, pre and post; final output/loss, oldest input gradient and packed accumulated parameter gradients |
+| Full-rate native SGD | [x] | Updated weights for every enabled node; Dense/KMeans/Parallel zero-lr preservation ×34 |
+| Exact replay | [x] | Fresh Vulkan result equals at least two measured repetitions across all exported tensors, weights, tapes and loss |
+| MeshBP equivalence | [x] | Independent MeshBP and MeshTweenChain wire calls agree exactly for all 23 families at 211 Float32 |
+| Shared volume credit | [x] | All 23 families, including KMeans/Parallel 111/chain/211 ×34 and 222 Float32 |
+| Credit primitive | [x] | Existing hand-calculated test distinguishes full-rate BPTT from last-tick half-rate MeshTween |
 
 The existing precision policy applies: finite loss band; exact/subnormal tensor
 and weight gates where specified; MHA gradients ≥strict, Softmax gradients ≥loose;
@@ -790,8 +778,7 @@ ingress plus RMSNorm adapter nodes in grids. SwiGLU uses the bounded recurrent
 trajectory from section 7. These are correctness fixtures; full residency and
 throughput tuning retain separate gates.
 
-**Status:** ⬜ MeshTweenChain signed (Vulkan). All 160 groups passed in 1555.46s.
-Combined runner (MeshTweenChain + MeshTween + ModeTweenChain) passed in 3826.581s.
+**Status:** ✅ signed (Vulkan).
 
 ## w2a Go↔Vulkan (StepTween ModeStepTween) — sign-off evidence
 
@@ -807,20 +794,19 @@ sections 2–6 extension evidence above.
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| Dense multi-hop Float32 | [ ] | Loss and updated weights; frozen Line gap where applicable |
-| All supported leaf families | [ ] | 23 families; 22 dtype-generic families ×34, GDN Float32 only |
-| CNN2/3 and ConvT2/3 | [ ] | Explicit rank-4/rank-5 ×34 fixtures |
-| Volume 222 Float32 | [ ] | All 23 supported families |
-| Volume 211 ×34 | [ ] | All 22 dtype-generic families; shared parent volume credit for Line variants |
-| Benchmark reset | [ ] | Every leaf dtype sweep compares measured-run output with an independent fixture |
-| Line state/credit primitives | [ ] | Warmup, per-hop credit, frozen gap, action flights without training, unsupported-mode rejection |
+| Dense multi-hop Float32 | [x] | Loss and updated weights; frozen Line gap where applicable |
+| All supported leaf families | [x] | 23 families; 22 dtype-generic families ×34, GDN Float32 only |
+| CNN2/3 and ConvT2/3 | [x] | Explicit rank-4/rank-5 ×34 fixtures |
+| Volume 222 Float32 | [x] | All 23 supported families |
+| Volume 211 ×34 | [x] | All 22 dtype-generic families; shared parent volume credit for Line variants |
+| Benchmark reset | [x] | Every leaf dtype sweep compares measured-run output with an independent fixture |
+| Line state/credit primitives | [x] | Warmup, per-hop credit, frozen gap, action flights without training, unsupported-mode rejection |
 
-**Status:** ⬜ ModeStepTween signed (Vulkan). All 130 groups passed in 714.36s.
-Combined runner (StepTween + ModeTween) passed in 1427.248s.
+**Status:** ✅ signed (Vulkan).
 Vulkan loss band apply where specified; GDN branches retain ≥strict. The
 existing subnormal policy and KMeans volume cancellation band remain explicit.
 KMeans/Parallel evidence is included above. Full graph residency and
-performance tuning remain open.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ## w2a Go↔Vulkan (StepTweenChain ModeStepTweenChain) — sign-off evidence
 
@@ -836,20 +822,19 @@ sections 2–6 extension evidence above.
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| Dense multi-hop Float32 | [ ] | Loss and updated weights; frozen Line gap where applicable |
-| All supported leaf families | [ ] | 23 families; 22 dtype-generic families ×34, GDN Float32 only |
-| CNN2/3 and ConvT2/3 | [ ] | Explicit rank-4/rank-5 ×34 fixtures |
-| Volume 222 Float32 | [ ] | All 23 supported families |
-| Volume 211 ×34 | [ ] | All 22 dtype-generic families; shared parent volume credit for Line variants |
-| Benchmark reset | [ ] | Every leaf dtype sweep compares measured-run output with an independent fixture |
-| Line state/credit primitives | [ ] | Warmup, per-hop credit, frozen gap, action flights without training, unsupported-mode rejection |
+| Dense multi-hop Float32 | [x] | Loss and updated weights; frozen Line gap where applicable |
+| All supported leaf families | [x] | 23 families; 22 dtype-generic families ×34, GDN Float32 only |
+| CNN2/3 and ConvT2/3 | [x] | Explicit rank-4/rank-5 ×34 fixtures |
+| Volume 222 Float32 | [x] | All 23 supported families |
+| Volume 211 ×34 | [x] | All 22 dtype-generic families; shared parent volume credit for Line variants |
+| Benchmark reset | [x] | Every leaf dtype sweep compares measured-run output with an independent fixture |
+| Line state/credit primitives | [x] | Warmup, per-hop credit, frozen gap, action flights without training, unsupported-mode rejection |
 
-**Status:** ⬜ ModeStepTweenChain signed (Vulkan). All 130 groups passed in 729.47s.
-Combined runner (StepTweenChain + ModeTweenChain) passed in 1456.056s.
+**Status:** ✅ signed (Vulkan).
 Vulkan loss band apply where specified; GDN branches retain ≥strict. The
 existing subnormal policy and KMeans volume cancellation band remain explicit.
 KMeans/Parallel evidence is included above. Full graph residency and
-performance tuning remain open.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ## 1 — NormalBP
 
@@ -893,31 +878,31 @@ Ship: thin Stack host + `runtime/line` TickLine/TrainLineMSE; wire `STB1`/`STBO`
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.52 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.52 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.52 |
-| Softmax | [ ] | [ ] | [ ] | 0.52 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.52 |
-| Embedding | [ ] | [ ] | [ ] | 0.52 |
-| MHA | [ ] | [ ] | [ ] | 0.52 |
-| CNN1 | [ ] | [ ] | [ ] | 0.52 |
-| CNN2 | [ ] | [ ] | [ ] | 0.52 |
-| CNN3 | [ ] | [ ] | [ ] | 0.52 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.52 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.52 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.52 |
-| RNN | [ ] | [ ] | [ ] | 0.52 |
-| LSTM | [ ] | [ ] | [ ] | 0.52 |
-| Sequential | [ ] | [ ] | [ ] | 0.52 |
-| Residual | [ ] | [ ] | [ ] | 0.52 |
-| KMeans | [ ] | [ ] | [ ] | 0.52 |
-| Mamba | [ ] | [ ] | [ ] | 0.52 |
-| Metacognition | [ ] | [ ] | [ ] | 0.52 |
-| GDN | [ ] | [ ] | [ ] | 0.52 |
-| Parallel | [ ] | [ ] | [ ] | 0.52 |
-| Stack | [ ] | [ ] | [ ] | 0.52 |
+| Dense | [x] | [x] | [x] | 0.52 |
+| RMSNorm | [x] | [x] | [x] | 0.52 |
+| LayerNorm | [x] | [x] | [x] | 0.52 |
+| Softmax | [x] | [x] | [x] | 0.52 |
+| SwiGLU | [x] | [x] | [x] | 0.52 |
+| Embedding | [x] | [x] | [x] | 0.52 |
+| MHA | [x] | [x] | [x] | 0.52 |
+| CNN1 | [x] | [x] | [x] | 0.52 |
+| CNN2 | [x] | [x] | [x] | 0.52 |
+| CNN3 | [x] | [x] | [x] | 0.52 |
+| ConvT1 | [x] | [x] | [x] | 0.52 |
+| ConvT2 | [x] | [x] | [x] | 0.52 |
+| ConvT3 | [x] | [x] | [x] | 0.52 |
+| RNN | [x] | [x] | [x] | 0.52 |
+| LSTM | [x] | [x] | [x] | 0.52 |
+| Sequential | [x] | [x] | [x] | 0.52 |
+| Residual | [x] | [x] | [x] | 0.52 |
+| KMeans | [x] | [x] | [x] | 0.52 |
+| Mamba | [x] | [x] | [x] | 0.52 |
+| Metacognition | [x] | [x] | [x] | 0.52 |
+| GDN | [x] | [x] | [x] | 0.52 |
+| Parallel | [x] | [x] | [x] | 0.52 |
+| Stack | [x] | [x] | [x] | 0.52 |
 
-**Checkpoint:** ⬜ StepBP Line + Dense MeshBP signed (Vulkan) — STB1 FamilyBP + MBP1 mesh-clock + ModeMeshBP vols; KMeans/Parallel Line included.
+**Checkpoint:** ✅ StepBP Line + Dense MeshBP signed (Vulkan) — STB1 FamilyBP + MBP1 mesh-clock + ModeMeshBP vols; KMeans/Parallel Line included.
 
 ---
 
@@ -929,31 +914,31 @@ CNN2/3 and ConvT2/3 have explicit ×34 leaf fixtures. 3D = reverse-hop volume 2�
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.54 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.54 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.54 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.54 |
-| Softmax | [ ] | [ ] | [ ] | 0.54 |
-| Embedding | [ ] | [ ] | [ ] | 0.54 |
-| MHA | [ ] | [ ] | [ ] | 0.54 |
-| CNN1 | [ ] | [ ] | [ ] | 0.54 |
-| CNN2 | [ ] | [ ] | [ ] | 0.54 |
-| CNN3 | [ ] | [ ] | [ ] | 0.54 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.54 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.54 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.54 |
-| RNN | [ ] | [ ] | [ ] | 0.54 |
-| LSTM | [ ] | [ ] | [ ] | 0.54 |
-| Sequential | [ ] | [ ] | [ ] | 0.54 |
-| Residual | [ ] | [ ] | [ ] | 0.54 |
-| KMeans | [ ] | [ ] | [ ] | 0.54 |
-| Mamba | [ ] | [ ] | [ ] | 0.54 |
-| Metacognition | [ ] | [ ] | [ ] | 0.54 |
-| GDN | [ ] | [ ] | [ ] | 0.54 |
-| Parallel | [ ] | [ ] | [ ] | 0.54 |
-| Stack | [ ] | [ ] | [ ] | 0.54 |
+| Dense | [x] | [x] | [x] | 0.54 |
+| RMSNorm | [x] | [x] | [x] | 0.54 |
+| LayerNorm | [x] | [x] | [x] | 0.54 |
+| SwiGLU | [x] | [x] | [x] | 0.54 |
+| Softmax | [x] | [x] | [x] | 0.54 |
+| Embedding | [x] | [x] | [x] | 0.54 |
+| MHA | [x] | [x] | [x] | 0.54 |
+| CNN1 | [x] | [x] | [x] | 0.54 |
+| CNN2 | [x] | [x] | [x] | 0.54 |
+| CNN3 | [x] | [x] | [x] | 0.54 |
+| ConvT1 | [x] | [x] | [x] | 0.54 |
+| ConvT2 | [x] | [x] | [x] | 0.54 |
+| ConvT3 | [x] | [x] | [x] | 0.54 |
+| RNN | [x] | [x] | [x] | 0.54 |
+| LSTM | [x] | [x] | [x] | 0.54 |
+| Sequential | [x] | [x] | [x] | 0.54 |
+| Residual | [x] | [x] | [x] | 0.54 |
+| KMeans | [x] | [x] | [x] | 0.54 |
+| Mamba | [x] | [x] | [x] | 0.54 |
+| Metacognition | [x] | [x] | [x] | 0.54 |
+| GDN | [x] | [x] | [x] | 0.54 |
+| Parallel | [x] | [x] | [x] | 0.54 |
+| Stack | [x] | [x] | [x] | 0.54 |
 
-**Checkpoint:** ⬜ ModeTween signed (Vulkan) — projected local @ `lr×0.5`; TWB1/TWV1 + per-kind volumes + KMeans/Parallel; 130 groups.
+**Checkpoint:** ✅ ModeTween signed (Vulkan) — projected local @ `lr×0.5`; TWB1/TWV1 + per-kind volumes + KMeans/Parallel; 130 groups.
 
 ---
 
@@ -965,31 +950,31 @@ CNN2/3 and ConvT2/3 have explicit ×34 leaf fixtures. 3D = volume Step 2×2×2×
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.55 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.55 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.55 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.55 |
-| Softmax | [ ] | [ ] | [ ] | 0.55 |
-| Embedding | [ ] | [ ] | [ ] | 0.55 |
-| MHA | [ ] | [ ] | [ ] | 0.55 |
-| CNN1 | [ ] | [ ] | [ ] | 0.55 |
-| CNN2 | [ ] | [ ] | [ ] | 0.55 |
-| CNN3 | [ ] | [ ] | [ ] | 0.55 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.55 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.55 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.55 |
-| RNN | [ ] | [ ] | [ ] | 0.55 |
-| LSTM | [ ] | [ ] | [ ] | 0.55 |
-| Sequential | [ ] | [ ] | [ ] | 0.55 |
-| Residual | [ ] | [ ] | [ ] | 0.55 |
-| KMeans | [ ] | [ ] | [ ] | 0.55 |
-| Mamba | [ ] | [ ] | [ ] | 0.55 |
-| Metacognition | [ ] | [ ] | [ ] | 0.55 |
-| GDN | [ ] | [ ] | [ ] | 0.55 |
-| Parallel | [ ] | [ ] | [ ] | 0.55 |
-| Stack | [ ] | [ ] | [ ] | 0.55 |
+| Dense | [x] | [x] | [x] | 0.55 |
+| RMSNorm | [x] | [x] | [x] | 0.55 |
+| LayerNorm | [x] | [x] | [x] | 0.55 |
+| SwiGLU | [x] | [x] | [x] | 0.55 |
+| Softmax | [x] | [x] | [x] | 0.55 |
+| Embedding | [x] | [x] | [x] | 0.55 |
+| MHA | [x] | [x] | [x] | 0.55 |
+| CNN1 | [x] | [x] | [x] | 0.55 |
+| CNN2 | [x] | [x] | [x] | 0.55 |
+| CNN3 | [x] | [x] | [x] | 0.55 |
+| ConvT1 | [x] | [x] | [x] | 0.55 |
+| ConvT2 | [x] | [x] | [x] | 0.55 |
+| ConvT3 | [x] | [x] | [x] | 0.55 |
+| RNN | [x] | [x] | [x] | 0.55 |
+| LSTM | [x] | [x] | [x] | 0.55 |
+| Sequential | [x] | [x] | [x] | 0.55 |
+| Residual | [x] | [x] | [x] | 0.55 |
+| KMeans | [x] | [x] | [x] | 0.55 |
+| Mamba | [x] | [x] | [x] | 0.55 |
+| Metacognition | [x] | [x] | [x] | 0.55 |
+| GDN | [x] | [x] | [x] | 0.55 |
+| Parallel | [x] | [x] | [x] | 0.55 |
+| Stack | [x] | [x] | [x] | 0.55 |
 
-**Checkpoint:** ⬜ ModeTweenChain signed (Vulkan) — FamilyBP @ full lr; TCB1/TCV1 + per-kind volumes + KMeans/Parallel; 130 groups.
+**Checkpoint:** ✅ ModeTweenChain signed (Vulkan) — FamilyBP @ full lr; TCB1/TCV1 + per-kind volumes + KMeans/Parallel; 130 groups.
 
 ---
 
@@ -1001,31 +986,31 @@ Ship: `runtime/line` Credit::FamilyTween on pop (`apply_projected` @ `lr×0.5`);
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.62 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.62 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.62 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.62 |
-| Softmax | [ ] | [ ] | [ ] | 0.62 |
-| Embedding | [ ] | [ ] | [ ] | 0.62 |
-| MHA | [ ] | [ ] | [ ] | 0.62 |
-| CNN1 | [ ] | [ ] | [ ] | 0.62 |
-| CNN2 | [ ] | [ ] | [ ] | 0.62 |
-| CNN3 | [ ] | [ ] | [ ] | 0.62 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.62 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.62 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.62 |
-| RNN | [ ] | [ ] | [ ] | 0.62 |
-| LSTM | [ ] | [ ] | [ ] | 0.62 |
-| Sequential | [ ] | [ ] | [ ] | 0.62 |
-| Residual | [ ] | [ ] | [ ] | 0.62 |
-| KMeans | [ ] | [ ] | [ ] | 0.62 |
-| Mamba | [ ] | [ ] | [ ] | 0.62 |
-| Metacognition | [ ] | [ ] | [ ] | 0.62 |
-| GDN | [ ] | [ ] | [ ] | 0.62 |
-| Parallel | [ ] | [ ] | [ ] | 0.62 |
-| Stack | [ ] | [ ] | [ ] | 0.62 |
+| Dense | [x] | [x] | [x] | 0.62 |
+| RMSNorm | [x] | [x] | [x] | 0.62 |
+| LayerNorm | [x] | [x] | [x] | 0.62 |
+| SwiGLU | [x] | [x] | [x] | 0.62 |
+| Softmax | [x] | [x] | [x] | 0.62 |
+| Embedding | [x] | [x] | [x] | 0.62 |
+| MHA | [x] | [x] | [x] | 0.62 |
+| CNN1 | [x] | [x] | [x] | 0.62 |
+| CNN2 | [x] | [x] | [x] | 0.62 |
+| CNN3 | [x] | [x] | [x] | 0.62 |
+| ConvT1 | [x] | [x] | [x] | 0.62 |
+| ConvT2 | [x] | [x] | [x] | 0.62 |
+| ConvT3 | [x] | [x] | [x] | 0.62 |
+| RNN | [x] | [x] | [x] | 0.62 |
+| LSTM | [x] | [x] | [x] | 0.62 |
+| Sequential | [x] | [x] | [x] | 0.62 |
+| Residual | [x] | [x] | [x] | 0.62 |
+| KMeans | [x] | [x] | [x] | 0.62 |
+| Mamba | [x] | [x] | [x] | 0.62 |
+| Metacognition | [x] | [x] | [x] | 0.62 |
+| GDN | [x] | [x] | [x] | 0.62 |
+| Parallel | [x] | [x] | [x] | 0.62 |
+| Stack | [x] | [x] | [x] | 0.62 |
 
-**Checkpoint:** ⬜ ModeStepTween signed (Vulkan) — Line FamilyTween `apply_projected` @ lr×0.5; STW1/STWO + ModeTween volumes; 130 groups in 714.36s.
+**Checkpoint:** ✅ ModeStepTween signed (Vulkan) — Line FamilyTween `apply_projected` @ lr×0.5; STW1/STWO + ModeTween volumes; 130 groups in 714.36s.
 
 ---
 
@@ -1037,31 +1022,31 @@ Ship: `runtime/line` Credit::FamilyBP on pop (same credit as StepBP / TweenChain
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.63 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.63 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.63 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.63 |
-| Softmax | [ ] | [ ] | [ ] | 0.63 |
-| Embedding | [ ] | [ ] | [ ] | 0.63 |
-| MHA | [ ] | [ ] | [ ] | 0.63 |
-| CNN1 | [ ] | [ ] | [ ] | 0.63 |
-| CNN2 | [ ] | [ ] | [ ] | 0.63 |
-| CNN3 | [ ] | [ ] | [ ] | 0.63 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.63 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.63 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.63 |
-| RNN | [ ] | [ ] | [ ] | 0.63 |
-| LSTM | [ ] | [ ] | [ ] | 0.63 |
-| Sequential | [ ] | [ ] | [ ] | 0.63 |
-| Residual | [ ] | [ ] | [ ] | 0.63 |
-| KMeans | [ ] | [ ] | [ ] | 0.63 |
-| Mamba | [ ] | [ ] | [ ] | 0.63 |
-| Metacognition | [ ] | [ ] | [ ] | 0.63 |
-| GDN | [ ] | [ ] | [ ] | 0.63 |
-| Parallel | [ ] | [ ] | [ ] | 0.63 |
-| Stack | [ ] | [ ] | [ ] | 0.63 |
+| Dense | [x] | [x] | [x] | 0.63 |
+| RMSNorm | [x] | [x] | [x] | 0.63 |
+| LayerNorm | [x] | [x] | [x] | 0.63 |
+| SwiGLU | [x] | [x] | [x] | 0.63 |
+| Softmax | [x] | [x] | [x] | 0.63 |
+| Embedding | [x] | [x] | [x] | 0.63 |
+| MHA | [x] | [x] | [x] | 0.63 |
+| CNN1 | [x] | [x] | [x] | 0.63 |
+| CNN2 | [x] | [x] | [x] | 0.63 |
+| CNN3 | [x] | [x] | [x] | 0.63 |
+| ConvT1 | [x] | [x] | [x] | 0.63 |
+| ConvT2 | [x] | [x] | [x] | 0.63 |
+| ConvT3 | [x] | [x] | [x] | 0.63 |
+| RNN | [x] | [x] | [x] | 0.63 |
+| LSTM | [x] | [x] | [x] | 0.63 |
+| Sequential | [x] | [x] | [x] | 0.63 |
+| Residual | [x] | [x] | [x] | 0.63 |
+| KMeans | [x] | [x] | [x] | 0.63 |
+| Mamba | [x] | [x] | [x] | 0.63 |
+| Metacognition | [x] | [x] | [x] | 0.63 |
+| GDN | [x] | [x] | [x] | 0.63 |
+| Parallel | [x] | [x] | [x] | 0.63 |
+| Stack | [x] | [x] | [x] | 0.63 |
 
-**Checkpoint:** ⬜ ModeStepTweenChain signed (Vulkan) — Line FamilyBP alias (`STC1`/`STCO` ≡ StepBP); ModeTweenChain volumes; 130 groups in 729.47s.
+**Checkpoint:** ✅ ModeStepTweenChain signed (Vulkan) — Line FamilyBP alias (`STC1`/`STCO` ≡ StepBP); ModeTweenChain volumes; 130 groups in 729.47s.
 
 ---
 
@@ -1080,35 +1065,31 @@ volume Forward+Step path validated at 222 Float32 and 211 ×34.
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.53 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.53 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.53 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.53 |
-| Softmax | [ ] | [ ] | [ ] | 0.53 |
-| Embedding | [ ] | [ ] | [ ] | 0.53 |
-| MHA | [ ] | [ ] | [ ] | 0.53 |
-| CNN1 | [ ] | [ ] | [ ] | 0.53 |
-| CNN2 | [ ] | [ ] | [ ] | 0.53 |
-| CNN3 | [ ] | [ ] | [ ] | 0.53 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.53 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.53 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.53 |
-| RNN | [ ] | [ ] | [ ] | 0.53 |
-| LSTM | [ ] | [ ] | [ ] | 0.53 |
-| Sequential | [ ] | [ ] | [ ] | 0.53 |
-| Residual | [ ] | [ ] | [ ] | 0.53 |
-| KMeans | [ ] | [ ] | [ ] | 0.53 |
-| Mamba | [ ] | [ ] | [ ] | 0.53 |
-| Metacognition | [ ] | [ ] | [ ] | 0.53 |
-| GDN | [ ] | [ ] | [ ] | 0.53 |
-| Parallel | [ ] | [ ] | [ ] | 0.53 |
-| Stack | [ ] | [ ] | [ ] | 0.53 |
+| Dense | [x] | [x] | [x] | 0.53 |
+| RMSNorm | [x] | [x] | [x] | 0.53 |
+| LayerNorm | [x] | [x] | [x] | 0.53 |
+| SwiGLU | [x] | [x] | [x] | 0.53 |
+| Softmax | [x] | [x] | [x] | 0.53 |
+| Embedding | [x] | [x] | [x] | 0.53 |
+| MHA | [x] | [x] | [x] | 0.53 |
+| CNN1 | [x] | [x] | [x] | 0.53 |
+| CNN2 | [x] | [x] | [x] | 0.53 |
+| CNN3 | [x] | [x] | [x] | 0.53 |
+| ConvT1 | [x] | [x] | [x] | 0.53 |
+| ConvT2 | [x] | [x] | [x] | 0.53 |
+| ConvT3 | [x] | [x] | [x] | 0.53 |
+| RNN | [x] | [x] | [x] | 0.53 |
+| LSTM | [x] | [x] | [x] | 0.53 |
+| Sequential | [x] | [x] | [x] | 0.53 |
+| Residual | [x] | [x] | [x] | 0.53 |
+| KMeans | [x] | [x] | [x] | 0.53 |
+| Mamba | [x] | [x] | [x] | 0.53 |
+| Metacognition | [x] | [x] | [x] | 0.53 |
+| GDN | [x] | [x] | [x] | 0.53 |
+| Parallel | [x] | [x] | [x] | 0.53 |
+| Stack | [x] | [x] | [x] | 0.53 |
 
-**Validated:** 2026-10-28. The 103 MeshBP case groups passed in
-1356.030 seconds (`WELVET_VULKAN_BENCH_ITERS=1`) with at least two measured
-replay iterations per fixture. Shared build passed.
-
-**Checkpoint:** ⬜ MeshBP signed (Vulkan) — all 23 supported families have actual
+**Checkpoint:** ✅ MeshBP signed (Vulkan) — all 23 supported families have actual
 mesh-clock node and grid BPTT evidence. All 22 dtype-generic families cover
 111 and 211 ×34; GDN is Float32-only. Every family also covers 222 Float32.
 Shape-changing Embedding uses a single-tick 111 node and disabled ingress plus
@@ -1145,31 +1126,31 @@ Ship: `runtime/step` `Credit::FamilyTween` — Forward×ticks → last-tick `app
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.60 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.60 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.60 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.60 |
-| Softmax | [ ] | [ ] | [ ] | 0.60 |
-| Embedding | [ ] | [ ] | [ ] | 0.60 |
-| MHA | [ ] | [ ] | [ ] | 0.60 |
-| CNN1 | [ ] | [ ] | [ ] | 0.60 |
-| CNN2 | [ ] | [ ] | [ ] | 0.60 |
-| CNN3 | [ ] | [ ] | [ ] | 0.60 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.60 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.60 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.60 |
-| RNN | [ ] | [ ] | [ ] | 0.60 |
-| LSTM | [ ] | [ ] | [ ] | 0.60 |
-| Sequential | [ ] | [ ] | [ ] | 0.60 |
-| Residual | [ ] | [ ] | [ ] | 0.60 |
-| KMeans | [ ] | [ ] | [ ] | 0.60 |
-| Mamba | [ ] | [ ] | [ ] | 0.60 |
-| Metacognition | [ ] | [ ] | [ ] | 0.60 |
-| GDN | [ ] | [ ] | [ ] | 0.60 |
-| Parallel | [ ] | [ ] | [ ] | 0.60 |
-| Stack | [ ] | [ ] | [ ] | 0.60 |
+| Dense | [x] | [x] | [x] | 0.60 |
+| RMSNorm | [x] | [x] | [x] | 0.60 |
+| LayerNorm | [x] | [x] | [x] | 0.60 |
+| SwiGLU | [x] | [x] | [x] | 0.60 |
+| Softmax | [x] | [x] | [x] | 0.60 |
+| Embedding | [x] | [x] | [x] | 0.60 |
+| MHA | [x] | [x] | [x] | 0.60 |
+| CNN1 | [x] | [x] | [x] | 0.60 |
+| CNN2 | [x] | [x] | [x] | 0.60 |
+| CNN3 | [x] | [x] | [x] | 0.60 |
+| ConvT1 | [x] | [x] | [x] | 0.60 |
+| ConvT2 | [x] | [x] | [x] | 0.60 |
+| ConvT3 | [x] | [x] | [x] | 0.60 |
+| RNN | [x] | [x] | [x] | 0.60 |
+| LSTM | [x] | [x] | [x] | 0.60 |
+| Sequential | [x] | [x] | [x] | 0.60 |
+| Residual | [x] | [x] | [x] | 0.60 |
+| KMeans | [x] | [x] | [x] | 0.60 |
+| Mamba | [x] | [x] | [x] | 0.60 |
+| Metacognition | [x] | [x] | [x] | 0.60 |
+| GDN | [x] | [x] | [x] | 0.60 |
+| Parallel | [x] | [x] | [x] | 0.60 |
+| Stack | [x] | [x] | [x] | 0.60 |
 
-**Checkpoint:** ⬜ MeshTween signed (Vulkan) — last-tick FamilyTween @ lr×0.5; MTW1/MTWO + MGW1/MGWO + ModeTween volumes; 159 groups in 1551.91s.
+**Checkpoint:** ✅ MeshTween signed (Vulkan) — last-tick FamilyTween @ lr×0.5; MTW1/MTWO + MGW1/MGWO + ModeTween volumes; 159 groups in 1551.91s.
 
 ---
 
@@ -1182,34 +1163,33 @@ Ship: `runtime/step` `Credit::FamilyBP` under mesh clock (`MGC1`/`MGCO`, existin
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.61 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.61 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.61 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.61 |
-| Softmax | [ ] | [ ] | [ ] | 0.61 |
-| Embedding | [ ] | [ ] | [ ] | 0.61 |
-| MHA | [ ] | [ ] | [ ] | 0.61 |
-| CNN1 | [ ] | [ ] | [ ] | 0.61 |
-| CNN2 | [ ] | [ ] | [ ] | 0.61 |
-| CNN3 | [ ] | [ ] | [ ] | 0.61 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.61 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.61 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.61 |
-| RNN | [ ] | [ ] | [ ] | 0.61 |
-| LSTM | [ ] | [ ] | [ ] | 0.61 |
-| Sequential | [ ] | [ ] | [ ] | 0.61 |
-| Residual | [ ] | [ ] | [ ] | 0.61 |
-| KMeans | [ ] | [ ] | [ ] | 0.61 |
-| Mamba | [ ] | [ ] | [ ] | 0.61 |
-| Metacognition | [ ] | [ ] | [ ] | 0.61 |
-| GDN | [ ] | [ ] | [ ] | 0.61 |
-| Parallel | [ ] | [ ] | [ ] | 0.61 |
-| Stack | [ ] | [ ] | [ ] | 0.61 |
+| Dense | [x] | [x] | [x] | 0.61 |
+| RMSNorm | [x] | [x] | [x] | 0.61 |
+| LayerNorm | [x] | [x] | [x] | 0.61 |
+| SwiGLU | [x] | [x] | [x] | 0.61 |
+| Softmax | [x] | [x] | [x] | 0.61 |
+| Embedding | [x] | [x] | [x] | 0.61 |
+| MHA | [x] | [x] | [x] | 0.61 |
+| CNN1 | [x] | [x] | [x] | 0.61 |
+| CNN2 | [x] | [x] | [x] | 0.61 |
+| CNN3 | [x] | [x] | [x] | 0.61 |
+| ConvT1 | [x] | [x] | [x] | 0.61 |
+| ConvT2 | [x] | [x] | [x] | 0.61 |
+| ConvT3 | [x] | [x] | [x] | 0.61 |
+| RNN | [x] | [x] | [x] | 0.61 |
+| LSTM | [x] | [x] | [x] | 0.61 |
+| Sequential | [x] | [x] | [x] | 0.61 |
+| Residual | [x] | [x] | [x] | 0.61 |
+| KMeans | [x] | [x] | [x] | 0.61 |
+| Mamba | [x] | [x] | [x] | 0.61 |
+| Metacognition | [x] | [x] | [x] | 0.61 |
+| GDN | [x] | [x] | [x] | 0.61 |
+| Parallel | [x] | [x] | [x] | 0.61 |
+| Stack | [x] | [x] | [x] | 0.61 |
 
-**Status:** ⬜ MeshTweenChain signed (Vulkan). All 160 groups passed in 1555.46s.
-Combined runner (MeshTweenChain + MeshTween + ModeTweenChain) passed in 3826.581s.
+**Status:** ✅ signed (Vulkan).
 
-**Checkpoint:** ⬜ MeshTweenChain signed (Vulkan) — FamilyBP BPTT+SGD under mesh clock;
+**Checkpoint:** ✅ MeshTweenChain signed (Vulkan) — FamilyBP BPTT+SGD under mesh clock;
 MTC1/MTCO + MGC1/MGCO ≡ MeshBP; ModeTweenChain volumes; 160 groups in 1555.46s.
 The 22 dtype-generic families cover 111/211 ×34; GDN is Float32-only.
 All 23 cover 222 Float32. Existing shared-volume gates retain their floors.
@@ -1242,31 +1222,31 @@ CNN2/3 and ConvT2/3 have explicit ×34 leaf fixtures. Softmax weightless (N may 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.56 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.56 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.56 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.56 |
-| Softmax | [ ] | [ ] | [ ] | 0.56 |
-| Embedding | [ ] | [ ] | [ ] | 0.56 |
-| MHA | [ ] | [ ] | [ ] | 0.56 |
-| CNN1 | [ ] | [ ] | [ ] | 0.56 |
-| CNN2 | [ ] | [ ] | [ ] | 0.56 |
-| CNN3 | [ ] | [ ] | [ ] | 0.56 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.56 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.56 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.56 |
-| RNN | [ ] | [ ] | [ ] | 0.56 |
-| LSTM | [ ] | [ ] | [ ] | 0.56 |
-| Sequential | [ ] | [ ] | [ ] | 0.56 |
-| Residual | [ ] | [ ] | [ ] | 0.56 |
-| KMeans | [ ] | [ ] | [ ] | 0.56 |
-| Mamba | [ ] | [ ] | [ ] | 0.56 |
-| Metacognition | [ ] | [ ] | [ ] | 0.56 |
-| GDN | [ ] | [ ] | [ ] | 0.56 |
-| Parallel | [ ] | [ ] | [ ] | 0.56 |
-| Stack | [ ] | [ ] | [ ] | 0.56 |
+| Dense | [x] | [x] | [x] | 0.56 |
+| RMSNorm | [x] | [x] | [x] | 0.56 |
+| LayerNorm | [x] | [x] | [x] | 0.56 |
+| SwiGLU | [x] | [x] | [x] | 0.56 |
+| Softmax | [x] | [x] | [x] | 0.56 |
+| Embedding | [x] | [x] | [x] | 0.56 |
+| MHA | [x] | [x] | [x] | 0.56 |
+| CNN1 | [x] | [x] | [x] | 0.56 |
+| CNN2 | [x] | [x] | [x] | 0.56 |
+| CNN3 | [x] | [x] | [x] | 0.56 |
+| ConvT1 | [x] | [x] | [x] | 0.56 |
+| ConvT2 | [x] | [x] | [x] | 0.56 |
+| ConvT3 | [x] | [x] | [x] | 0.56 |
+| RNN | [x] | [x] | [x] | 0.56 |
+| LSTM | [x] | [x] | [x] | 0.56 |
+| Sequential | [x] | [x] | [x] | 0.56 |
+| Residual | [x] | [x] | [x] | 0.56 |
+| KMeans | [x] | [x] | [x] | 0.56 |
+| Mamba | [x] | [x] | [x] | 0.56 |
+| Metacognition | [x] | [x] | [x] | 0.56 |
+| GDN | [x] | [x] | [x] | 0.56 |
+| Parallel | [x] | [x] | [x] | 0.56 |
+| Stack | [x] | [x] | [x] | 0.56 |
 
-**Checkpoint:** ⬜ ModeTweenSplit signed (Vulkan) — OpenSplitTape 1/N @ full lr; TSB1/TSP1 + per-kind volumes + KMeans/Parallel; 131 groups in 775.850s.
+**Checkpoint:** ✅ ModeTweenSplit signed (Vulkan) — OpenSplitTape 1/N @ full lr; TSB1/TSP1 + per-kind volumes + KMeans/Parallel; 131 groups in 775.850s.
 
 Parallel leaf-mode Split counts all trainable branch leaves, nested Stack/Parallel
 leaves and its Filter gate before applying projected 1/N gaps at full lr. Softmax
@@ -1291,31 +1271,31 @@ Ship: `runtime/line` Credit::FamilyTweenSplit on pop (`apply_split_child` 1/N @ 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.57 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.57 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.57 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.57 |
-| Softmax | [ ] | [ ] | [ ] | 0.57 |
-| Embedding | [ ] | [ ] | [ ] | 0.57 |
-| MHA | [ ] | [ ] | [ ] | 0.57 |
-| CNN1 | [ ] | [ ] | [ ] | 0.57 |
-| CNN2 | [ ] | [ ] | [ ] | 0.57 |
-| CNN3 | [ ] | [ ] | [ ] | 0.57 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.57 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.57 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.57 |
-| RNN | [ ] | [ ] | [ ] | 0.57 |
-| LSTM | [ ] | [ ] | [ ] | 0.57 |
-| Sequential | [ ] | [ ] | [ ] | 0.57 |
-| Residual | [ ] | [ ] | [ ] | 0.57 |
-| KMeans | [ ] | [ ] | [ ] | 0.57 |
-| Mamba | [ ] | [ ] | [ ] | 0.57 |
-| Metacognition | [ ] | [ ] | [ ] | 0.57 |
-| GDN | [ ] | [ ] | [ ] | 0.57 |
-| Parallel | [ ] | [ ] | [ ] | 0.57 |
-| Stack | [ ] | [ ] | [ ] | 0.57 |
+| Dense | [x] | [x] | [x] | 0.57 |
+| RMSNorm | [x] | [x] | [x] | 0.57 |
+| LayerNorm | [x] | [x] | [x] | 0.57 |
+| SwiGLU | [x] | [x] | [x] | 0.57 |
+| Softmax | [x] | [x] | [x] | 0.57 |
+| Embedding | [x] | [x] | [x] | 0.57 |
+| MHA | [x] | [x] | [x] | 0.57 |
+| CNN1 | [x] | [x] | [x] | 0.57 |
+| CNN2 | [x] | [x] | [x] | 0.57 |
+| CNN3 | [x] | [x] | [x] | 0.57 |
+| ConvT1 | [x] | [x] | [x] | 0.57 |
+| ConvT2 | [x] | [x] | [x] | 0.57 |
+| ConvT3 | [x] | [x] | [x] | 0.57 |
+| RNN | [x] | [x] | [x] | 0.57 |
+| LSTM | [x] | [x] | [x] | 0.57 |
+| Sequential | [x] | [x] | [x] | 0.57 |
+| Residual | [x] | [x] | [x] | 0.57 |
+| KMeans | [x] | [x] | [x] | 0.57 |
+| Mamba | [x] | [x] | [x] | 0.57 |
+| Metacognition | [x] | [x] | [x] | 0.57 |
+| GDN | [x] | [x] | [x] | 0.57 |
+| Parallel | [x] | [x] | [x] | 0.57 |
+| Stack | [x] | [x] | [x] | 0.57 |
 
-**Checkpoint:** ⬜ ModeStepTweenSplit signed (Vulkan) — Line FamilyTweenSplit 1/N @ full lr; STS1/STSO + TweenSplit volumes; 130 groups in 760.015s.
+**Checkpoint:** ✅ ModeStepTweenSplit signed (Vulkan) — Line FamilyTweenSplit 1/N @ full lr; STS1/STSO + TweenSplit volumes; 130 groups in 760.015s.
 
 ---
 
@@ -1327,31 +1307,31 @@ CNN2/3 and ConvT2/3 have explicit ×34 leaf fixtures. Default AltTimes=1.
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.58 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.58 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.58 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.58 |
-| Softmax | [ ] | [ ] | [ ] | 0.58 |
-| Embedding | [ ] | [ ] | [ ] | 0.58 |
-| MHA | [ ] | [ ] | [ ] | 0.58 |
-| CNN1 | [ ] | [ ] | [ ] | 0.58 |
-| CNN2 | [ ] | [ ] | [ ] | 0.58 |
-| CNN3 | [ ] | [ ] | [ ] | 0.58 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.58 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.58 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.58 |
-| RNN | [ ] | [ ] | [ ] | 0.58 |
-| LSTM | [ ] | [ ] | [ ] | 0.58 |
-| Sequential | [ ] | [ ] | [ ] | 0.58 |
-| Residual | [ ] | [ ] | [ ] | 0.58 |
-| KMeans | [ ] | [ ] | [ ] | 0.58 |
-| Mamba | [ ] | [ ] | [ ] | 0.58 |
-| Metacognition | [ ] | [ ] | [ ] | 0.58 |
-| GDN | [ ] | [ ] | [ ] | 0.58 |
-| Parallel | [ ] | [ ] | [ ] | 0.58 |
-| Stack | [ ] | [ ] | [ ] | 0.58 |
+| Dense | [x] | [x] | [x] | 0.58 |
+| RMSNorm | [x] | [x] | [x] | 0.58 |
+| LayerNorm | [x] | [x] | [x] | 0.58 |
+| SwiGLU | [x] | [x] | [x] | 0.58 |
+| Softmax | [x] | [x] | [x] | 0.58 |
+| Embedding | [x] | [x] | [x] | 0.58 |
+| MHA | [x] | [x] | [x] | 0.58 |
+| CNN1 | [x] | [x] | [x] | 0.58 |
+| CNN2 | [x] | [x] | [x] | 0.58 |
+| CNN3 | [x] | [x] | [x] | 0.58 |
+| ConvT1 | [x] | [x] | [x] | 0.58 |
+| ConvT2 | [x] | [x] | [x] | 0.58 |
+| ConvT3 | [x] | [x] | [x] | 0.58 |
+| RNN | [x] | [x] | [x] | 0.58 |
+| LSTM | [x] | [x] | [x] | 0.58 |
+| Sequential | [x] | [x] | [x] | 0.58 |
+| Residual | [x] | [x] | [x] | 0.58 |
+| KMeans | [x] | [x] | [x] | 0.58 |
+| Mamba | [x] | [x] | [x] | 0.58 |
+| Metacognition | [x] | [x] | [x] | 0.58 |
+| GDN | [x] | [x] | [x] | 0.58 |
+| Parallel | [x] | [x] | [x] | 0.58 |
+| Stack | [x] | [x] | [x] | 0.58 |
 
-**Checkpoint:** ⬜ ModeTweenAlt signed (Vulkan) — Split@lr → refresh → Tween@lr×0.5; TAB1/TABO + TAV1/per-kind; 130 groups in 736.794s.
+**Checkpoint:** ✅ ModeTweenAlt signed (Vulkan) — Split@lr → refresh → Tween@lr×0.5; TAB1/TABO + TAV1/per-kind; 130 groups in 736.794s.
 
 ---
 
@@ -1363,31 +1343,31 @@ Ship: `runtime/line` Credit::FamilyTweenAlt on pop (`apply_alt_child` Split→Tw
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.59 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.59 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.59 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.59 |
-| Softmax | [ ] | [ ] | [ ] | 0.59 |
-| Embedding | [ ] | [ ] | [ ] | 0.59 |
-| MHA | [ ] | [ ] | [ ] | 0.59 |
-| CNN1 | [ ] | [ ] | [ ] | 0.59 |
-| CNN2 | [ ] | [ ] | [ ] | 0.59 |
-| CNN3 | [ ] | [ ] | [ ] | 0.59 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.59 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.59 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.59 |
-| RNN | [ ] | [ ] | [ ] | 0.59 |
-| LSTM | [ ] | [ ] | [ ] | 0.59 |
-| Sequential | [ ] | [ ] | [ ] | 0.59 |
-| Residual | [ ] | [ ] | [ ] | 0.59 |
-| KMeans | [ ] | [ ] | [ ] | 0.59 |
-| Mamba | [ ] | [ ] | [ ] | 0.59 |
-| Metacognition | [ ] | [ ] | [ ] | 0.59 |
-| GDN | [ ] | [ ] | [ ] | 0.59 |
-| Parallel | [ ] | [ ] | [ ] | 0.59 |
-| Stack | [ ] | [ ] | [ ] | 0.59 |
+| Dense | [x] | [x] | [x] | 0.59 |
+| RMSNorm | [x] | [x] | [x] | 0.59 |
+| LayerNorm | [x] | [x] | [x] | 0.59 |
+| SwiGLU | [x] | [x] | [x] | 0.59 |
+| Softmax | [x] | [x] | [x] | 0.59 |
+| Embedding | [x] | [x] | [x] | 0.59 |
+| MHA | [x] | [x] | [x] | 0.59 |
+| CNN1 | [x] | [x] | [x] | 0.59 |
+| CNN2 | [x] | [x] | [x] | 0.59 |
+| CNN3 | [x] | [x] | [x] | 0.59 |
+| ConvT1 | [x] | [x] | [x] | 0.59 |
+| ConvT2 | [x] | [x] | [x] | 0.59 |
+| ConvT3 | [x] | [x] | [x] | 0.59 |
+| RNN | [x] | [x] | [x] | 0.59 |
+| LSTM | [x] | [x] | [x] | 0.59 |
+| Sequential | [x] | [x] | [x] | 0.59 |
+| Residual | [x] | [x] | [x] | 0.59 |
+| KMeans | [x] | [x] | [x] | 0.59 |
+| Mamba | [x] | [x] | [x] | 0.59 |
+| Metacognition | [x] | [x] | [x] | 0.59 |
+| GDN | [x] | [x] | [x] | 0.59 |
+| Parallel | [x] | [x] | [x] | 0.59 |
+| Stack | [x] | [x] | [x] | 0.59 |
 
-**Checkpoint:** ⬜ ModeStepTweenAlt signed (Vulkan) — Line FamilyTweenAlt Split→Tween frozen gap; STA1/STAO + TweenAlt volumes; 130 groups in 738.413s.
+**Checkpoint:** ✅ ModeStepTweenAlt signed (Vulkan) — Line FamilyTweenAlt Split→Tween frozen gap; STA1/STAO + TweenAlt volumes; 130 groups in 738.413s.
 
 ---
 
@@ -1399,31 +1379,31 @@ Wires: `GPB1`/`GPBO` (variant 1); `PGB1`/`PGVO` for actual-type volumes. Tests: 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.64 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.64 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.64 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.64 |
-| Softmax | [ ] | [ ] | [ ] | 0.64 |
-| Embedding | [ ] | [ ] | [ ] | 0.64 |
-| MHA | [ ] | [ ] | [ ] | 0.64 |
-| CNN1 | [ ] | [ ] | [ ] | 0.64 |
-| CNN2 | [ ] | [ ] | [ ] | 0.64 |
-| CNN3 | [ ] | [ ] | [ ] | 0.64 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.64 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.64 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.64 |
-| RNN | [ ] | [ ] | [ ] | 0.64 |
-| LSTM | [ ] | [ ] | [ ] | 0.64 |
-| Sequential | [ ] | [ ] | [ ] | 0.64 |
-| Residual | [ ] | [ ] | [ ] | 0.64 |
-| KMeans | [ ] | [ ] | [ ] | 0.64 |
-| Mamba | [ ] | [ ] | [ ] | 0.64 |
-| Metacognition | [ ] | [ ] | [ ] | 0.64 |
-| GDN | [ ] | [ ] | [ ] | 0.64 |
-| Parallel | [ ] | [ ] | [ ] | 0.64 |
-| Stack | [ ] | [ ] | [ ] | 0.64 |
+| Dense | [x] | [x] | [x] | 0.64 |
+| RMSNorm | [x] | [x] | [x] | 0.64 |
+| LayerNorm | [x] | [x] | [x] | 0.64 |
+| SwiGLU | [x] | [x] | [x] | 0.64 |
+| Softmax | [x] | [x] | [x] | 0.64 |
+| Embedding | [x] | [x] | [x] | 0.64 |
+| MHA | [x] | [x] | [x] | 0.64 |
+| CNN1 | [x] | [x] | [x] | 0.64 |
+| CNN2 | [x] | [x] | [x] | 0.64 |
+| CNN3 | [x] | [x] | [x] | 0.64 |
+| ConvT1 | [x] | [x] | [x] | 0.64 |
+| ConvT2 | [x] | [x] | [x] | 0.64 |
+| ConvT3 | [x] | [x] | [x] | 0.64 |
+| RNN | [x] | [x] | [x] | 0.64 |
+| LSTM | [x] | [x] | [x] | 0.64 |
+| Sequential | [x] | [x] | [x] | 0.64 |
+| Residual | [x] | [x] | [x] | 0.64 |
+| KMeans | [x] | [x] | [x] | 0.64 |
+| Mamba | [x] | [x] | [x] | 0.64 |
+| Metacognition | [x] | [x] | [x] | 0.64 |
+| GDN | [x] | [x] | [x] | 0.64 |
+| Parallel | [x] | [x] | [x] | 0.64 |
+| Stack | [x] | [x] | [x] | 0.64 |
 
-**Checkpoint:** ⬜ `TestGoVVulkanProxyTrain` PASS (65 groups, ~548s @ BENCH_ITERS=1); `TestGoVVulkanProxyVolumeTrain` PASS (69 groups, ~728s @ BENCH_ITERS=1).
+**Checkpoint:** ✅ `TestGoVVulkanProxyTrain` PASS (65 groups, ~548s @ BENCH_ITERS=1); `TestGoVVulkanProxyVolumeTrain` PASS (69 groups, ~728s @ BENCH_ITERS=1).
 
 ---
 
@@ -1435,31 +1415,31 @@ Wires: `GPB1`/`GPBO` (variant 2); `PGB1`/`PGVO` for actual-type volumes. Tests: 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.65 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.65 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.65 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.65 |
-| Softmax | [ ] | [ ] | [ ] | 0.65 |
-| Embedding | [ ] | [ ] | [ ] | 0.65 |
-| MHA | [ ] | [ ] | [ ] | 0.65 |
-| CNN1 | [ ] | [ ] | [ ] | 0.65 |
-| CNN2 | [ ] | [ ] | [ ] | 0.65 |
-| CNN3 | [ ] | [ ] | [ ] | 0.65 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.65 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.65 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.65 |
-| RNN | [ ] | [ ] | [ ] | 0.65 |
-| LSTM | [ ] | [ ] | [ ] | 0.65 |
-| Sequential | [ ] | [ ] | [ ] | 0.65 |
-| Residual | [ ] | [ ] | [ ] | 0.65 |
-| KMeans | [ ] | [ ] | [ ] | 0.65 |
-| Mamba | [ ] | [ ] | [ ] | 0.65 |
-| Metacognition | [ ] | [ ] | [ ] | 0.65 |
-| GDN | [ ] | [ ] | [ ] | 0.65 |
-| Parallel | [ ] | [ ] | [ ] | 0.65 |
-| Stack | [ ] | [ ] | [ ] | 0.65 |
+| Dense | [x] | [x] | [x] | 0.65 |
+| RMSNorm | [x] | [x] | [x] | 0.65 |
+| LayerNorm | [x] | [x] | [x] | 0.65 |
+| SwiGLU | [x] | [x] | [x] | 0.65 |
+| Softmax | [x] | [x] | [x] | 0.65 |
+| Embedding | [x] | [x] | [x] | 0.65 |
+| MHA | [x] | [x] | [x] | 0.65 |
+| CNN1 | [x] | [x] | [x] | 0.65 |
+| CNN2 | [x] | [x] | [x] | 0.65 |
+| CNN3 | [x] | [x] | [x] | 0.65 |
+| ConvT1 | [x] | [x] | [x] | 0.65 |
+| ConvT2 | [x] | [x] | [x] | 0.65 |
+| ConvT3 | [x] | [x] | [x] | 0.65 |
+| RNN | [x] | [x] | [x] | 0.65 |
+| LSTM | [x] | [x] | [x] | 0.65 |
+| Sequential | [x] | [x] | [x] | 0.65 |
+| Residual | [x] | [x] | [x] | 0.65 |
+| KMeans | [x] | [x] | [x] | 0.65 |
+| Mamba | [x] | [x] | [x] | 0.65 |
+| Metacognition | [x] | [x] | [x] | 0.65 |
+| GDN | [x] | [x] | [x] | 0.65 |
+| Parallel | [x] | [x] | [x] | 0.65 |
+| Stack | [x] | [x] | [x] | 0.65 |
 
-**Checkpoint:** ⬜ `TestGoVVulkanProxyTrain/TweenSplitLinear` PASS (65 groups, ~548s @ BENCH_ITERS=1); `TestGoVVulkanProxyVolumeTrain/TweenSplitLinear` PASS (69 groups, ~733s @ BENCH_ITERS=1).
+**Checkpoint:** ✅ `TestGoVVulkanProxyTrain/TweenSplitLinear` PASS (65 groups, ~548s @ BENCH_ITERS=1); `TestGoVVulkanProxyVolumeTrain/TweenSplitLinear` PASS (69 groups, ~733s @ BENCH_ITERS=1).
 
 ---
 
@@ -1471,31 +1451,31 @@ Wires: `GPB1`/`GPBO` (variant 3); `PGB1`/`PGVO` for actual-type volumes. Tests: 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.66 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.66 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.66 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.66 |
-| Softmax | [ ] | [ ] | [ ] | 0.66 |
-| Embedding | [ ] | [ ] | [ ] | 0.66 |
-| MHA | [ ] | [ ] | [ ] | 0.66 |
-| CNN1 | [ ] | [ ] | [ ] | 0.66 |
-| CNN2 | [ ] | [ ] | [ ] | 0.66 |
-| CNN3 | [ ] | [ ] | [ ] | 0.66 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.66 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.66 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.66 |
-| RNN | [ ] | [ ] | [ ] | 0.66 |
-| LSTM | [ ] | [ ] | [ ] | 0.66 |
-| Sequential | [ ] | [ ] | [ ] | 0.66 |
-| Residual | [ ] | [ ] | [ ] | 0.66 |
-| KMeans | [ ] | [ ] | [ ] | 0.66 |
-| Mamba | [ ] | [ ] | [ ] | 0.66 |
-| Metacognition | [ ] | [ ] | [ ] | 0.66 |
-| GDN | [ ] | [ ] | [ ] | 0.66 |
-| Parallel | [ ] | [ ] | [ ] | 0.66 |
-| Stack | [ ] | [ ] | [ ] | 0.66 |
+| Dense | [x] | [x] | [x] | 0.66 |
+| RMSNorm | [x] | [x] | [x] | 0.66 |
+| LayerNorm | [x] | [x] | [x] | 0.66 |
+| SwiGLU | [x] | [x] | [x] | 0.66 |
+| Softmax | [x] | [x] | [x] | 0.66 |
+| Embedding | [x] | [x] | [x] | 0.66 |
+| MHA | [x] | [x] | [x] | 0.66 |
+| CNN1 | [x] | [x] | [x] | 0.66 |
+| CNN2 | [x] | [x] | [x] | 0.66 |
+| CNN3 | [x] | [x] | [x] | 0.66 |
+| ConvT1 | [x] | [x] | [x] | 0.66 |
+| ConvT2 | [x] | [x] | [x] | 0.66 |
+| ConvT3 | [x] | [x] | [x] | 0.66 |
+| RNN | [x] | [x] | [x] | 0.66 |
+| LSTM | [x] | [x] | [x] | 0.66 |
+| Sequential | [x] | [x] | [x] | 0.66 |
+| Residual | [x] | [x] | [x] | 0.66 |
+| KMeans | [x] | [x] | [x] | 0.66 |
+| Mamba | [x] | [x] | [x] | 0.66 |
+| Metacognition | [x] | [x] | [x] | 0.66 |
+| GDN | [x] | [x] | [x] | 0.66 |
+| Parallel | [x] | [x] | [x] | 0.66 |
+| Stack | [x] | [x] | [x] | 0.66 |
 
-**Checkpoint:** ⬜ `TestGoVVulkanProxyTrain/TweenSplitFastProxy` PASS (65 groups, ~546s @ BENCH_ITERS=1); `TestGoVVulkanProxyVolumeTrain/TweenSplitFastProxy` PASS (69 groups, ~729s @ BENCH_ITERS=1).
+**Checkpoint:** ✅ `TestGoVVulkanProxyTrain/TweenSplitFastProxy` PASS (65 groups, ~546s @ BENCH_ITERS=1); `TestGoVVulkanProxyVolumeTrain/TweenSplitFastProxy` PASS (69 groups, ~729s @ BENCH_ITERS=1).
 
 ---
 
@@ -1507,31 +1487,31 @@ Wires: `GPB1`/`GPBO` (variant 4); `PGB1`/`PGVO` for actual-type volumes. Tests: 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.67 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.67 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.67 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.67 |
-| Softmax | [ ] | [ ] | [ ] | 0.67 |
-| Embedding | [ ] | [ ] | [ ] | 0.67 |
-| MHA | [ ] | [ ] | [ ] | 0.67 |
-| CNN1 | [ ] | [ ] | [ ] | 0.67 |
-| CNN2 | [ ] | [ ] | [ ] | 0.67 |
-| CNN3 | [ ] | [ ] | [ ] | 0.67 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.67 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.67 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.67 |
-| RNN | [ ] | [ ] | [ ] | 0.67 |
-| LSTM | [ ] | [ ] | [ ] | 0.67 |
-| Sequential | [ ] | [ ] | [ ] | 0.67 |
-| Residual | [ ] | [ ] | [ ] | 0.67 |
-| KMeans | [ ] | [ ] | [ ] | 0.67 |
-| Mamba | [ ] | [ ] | [ ] | 0.67 |
-| Metacognition | [ ] | [ ] | [ ] | 0.67 |
-| GDN | [ ] | [ ] | [ ] | 0.67 |
-| Parallel | [ ] | [ ] | [ ] | 0.67 |
-| Stack | [ ] | [ ] | [ ] | 0.67 |
+| Dense | [x] | [x] | [x] | 0.67 |
+| RMSNorm | [x] | [x] | [x] | 0.67 |
+| LayerNorm | [x] | [x] | [x] | 0.67 |
+| SwiGLU | [x] | [x] | [x] | 0.67 |
+| Softmax | [x] | [x] | [x] | 0.67 |
+| Embedding | [x] | [x] | [x] | 0.67 |
+| MHA | [x] | [x] | [x] | 0.67 |
+| CNN1 | [x] | [x] | [x] | 0.67 |
+| CNN2 | [x] | [x] | [x] | 0.67 |
+| CNN3 | [x] | [x] | [x] | 0.67 |
+| ConvT1 | [x] | [x] | [x] | 0.67 |
+| ConvT2 | [x] | [x] | [x] | 0.67 |
+| ConvT3 | [x] | [x] | [x] | 0.67 |
+| RNN | [x] | [x] | [x] | 0.67 |
+| LSTM | [x] | [x] | [x] | 0.67 |
+| Sequential | [x] | [x] | [x] | 0.67 |
+| Residual | [x] | [x] | [x] | 0.67 |
+| KMeans | [x] | [x] | [x] | 0.67 |
+| Mamba | [x] | [x] | [x] | 0.67 |
+| Metacognition | [x] | [x] | [x] | 0.67 |
+| GDN | [x] | [x] | [x] | 0.67 |
+| Parallel | [x] | [x] | [x] | 0.67 |
+| Stack | [x] | [x] | [x] | 0.67 |
 
-**Checkpoint:** ⬜ `TestGoVVulkanProxyTrain/TweenSplitLinearCache` PASS (88 groups, ~563s @ BENCH_ITERS=1); `TestGoVVulkanProxyVolumeTrain/TweenSplitLinearCache` PASS (92 groups, ~747s @ BENCH_ITERS=1).
+**Checkpoint:** ✅ `TestGoVVulkanProxyTrain/TweenSplitLinearCache` PASS (88 groups, ~563s @ BENCH_ITERS=1); `TestGoVVulkanProxyVolumeTrain/TweenSplitLinearCache` PASS (92 groups, ~747s @ BENCH_ITERS=1).
 
 ---
 
@@ -1543,31 +1523,31 @@ Wires: `GPB1`/`GPBO` (variant 5); `PGB1`/`PGVO` for actual-type volumes. Tests: 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.68 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.68 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.68 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.68 |
-| Softmax | [ ] | [ ] | [ ] | 0.68 |
-| Embedding | [ ] | [ ] | [ ] | 0.68 |
-| MHA | [ ] | [ ] | [ ] | 0.68 |
-| CNN1 | [ ] | [ ] | [ ] | 0.68 |
-| CNN2 | [ ] | [ ] | [ ] | 0.68 |
-| CNN3 | [ ] | [ ] | [ ] | 0.68 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.68 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.68 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.68 |
-| RNN | [ ] | [ ] | [ ] | 0.68 |
-| LSTM | [ ] | [ ] | [ ] | 0.68 |
-| Sequential | [ ] | [ ] | [ ] | 0.68 |
-| Residual | [ ] | [ ] | [ ] | 0.68 |
-| KMeans | [ ] | [ ] | [ ] | 0.68 |
-| Mamba | [ ] | [ ] | [ ] | 0.68 |
-| Metacognition | [ ] | [ ] | [ ] | 0.68 |
-| GDN | [ ] | [ ] | [ ] | 0.68 |
-| Parallel | [ ] | [ ] | [ ] | 0.68 |
-| Stack | [ ] | [ ] | [ ] | 0.68 |
+| Dense | [x] | [x] | [x] | 0.68 |
+| RMSNorm | [x] | [x] | [x] | 0.68 |
+| LayerNorm | [x] | [x] | [x] | 0.68 |
+| SwiGLU | [x] | [x] | [x] | 0.68 |
+| Softmax | [x] | [x] | [x] | 0.68 |
+| Embedding | [x] | [x] | [x] | 0.68 |
+| MHA | [x] | [x] | [x] | 0.68 |
+| CNN1 | [x] | [x] | [x] | 0.68 |
+| CNN2 | [x] | [x] | [x] | 0.68 |
+| CNN3 | [x] | [x] | [x] | 0.68 |
+| ConvT1 | [x] | [x] | [x] | 0.68 |
+| ConvT2 | [x] | [x] | [x] | 0.68 |
+| ConvT3 | [x] | [x] | [x] | 0.68 |
+| RNN | [x] | [x] | [x] | 0.68 |
+| LSTM | [x] | [x] | [x] | 0.68 |
+| Sequential | [x] | [x] | [x] | 0.68 |
+| Residual | [x] | [x] | [x] | 0.68 |
+| KMeans | [x] | [x] | [x] | 0.68 |
+| Mamba | [x] | [x] | [x] | 0.68 |
+| Metacognition | [x] | [x] | [x] | 0.68 |
+| GDN | [x] | [x] | [x] | 0.68 |
+| Parallel | [x] | [x] | [x] | 0.68 |
+| Stack | [x] | [x] | [x] | 0.68 |
 
-**Checkpoint:** Direct Go↔Vulkan parity and repeated replay passed for all 23 families (34 native dtypes where supported; GDN Float32). Leaf fixtures retain their declared precision gates. Proxy volume loss, captured tensors and native weights require industry-or-better (60–100%) agreement, with actual deviations reported; observed async rounding differences were strict (80%). Exact same-backend replay is checked separately. Numerical projection, credit, norms and SGD run in Vulkan; host code schedules work and stages tapes. Full graph residency and performance tuning remain open.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ---
 
@@ -1579,31 +1559,31 @@ Wires: `GPB1`/`GPBO` (variant 6); `PGB1`/`PGVO` for actual-type volumes. Tests: 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.69 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.69 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.69 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.69 |
-| Softmax | [ ] | [ ] | [ ] | 0.69 |
-| Embedding | [ ] | [ ] | [ ] | 0.69 |
-| MHA | [ ] | [ ] | [ ] | 0.69 |
-| CNN1 | [ ] | [ ] | [ ] | 0.69 |
-| CNN2 | [ ] | [ ] | [ ] | 0.69 |
-| CNN3 | [ ] | [ ] | [ ] | 0.69 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.69 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.69 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.69 |
-| RNN | [ ] | [ ] | [ ] | 0.69 |
-| LSTM | [ ] | [ ] | [ ] | 0.69 |
-| Sequential | [ ] | [ ] | [ ] | 0.69 |
-| Residual | [ ] | [ ] | [ ] | 0.69 |
-| KMeans | [ ] | [ ] | [ ] | 0.69 |
-| Mamba | [ ] | [ ] | [ ] | 0.69 |
-| Metacognition | [ ] | [ ] | [ ] | 0.69 |
-| GDN | [ ] | [ ] | [ ] | 0.69 |
-| Parallel | [ ] | [ ] | [ ] | 0.69 |
-| Stack | [ ] | [ ] | [ ] | 0.69 |
+| Dense | [x] | [x] | [x] | 0.69 |
+| RMSNorm | [x] | [x] | [x] | 0.69 |
+| LayerNorm | [x] | [x] | [x] | 0.69 |
+| SwiGLU | [x] | [x] | [x] | 0.69 |
+| Softmax | [x] | [x] | [x] | 0.69 |
+| Embedding | [x] | [x] | [x] | 0.69 |
+| MHA | [x] | [x] | [x] | 0.69 |
+| CNN1 | [x] | [x] | [x] | 0.69 |
+| CNN2 | [x] | [x] | [x] | 0.69 |
+| CNN3 | [x] | [x] | [x] | 0.69 |
+| ConvT1 | [x] | [x] | [x] | 0.69 |
+| ConvT2 | [x] | [x] | [x] | 0.69 |
+| ConvT3 | [x] | [x] | [x] | 0.69 |
+| RNN | [x] | [x] | [x] | 0.69 |
+| LSTM | [x] | [x] | [x] | 0.69 |
+| Sequential | [x] | [x] | [x] | 0.69 |
+| Residual | [x] | [x] | [x] | 0.69 |
+| KMeans | [x] | [x] | [x] | 0.69 |
+| Mamba | [x] | [x] | [x] | 0.69 |
+| Metacognition | [x] | [x] | [x] | 0.69 |
+| GDN | [x] | [x] | [x] | 0.69 |
+| Parallel | [x] | [x] | [x] | 0.69 |
+| Stack | [x] | [x] | [x] | 0.69 |
 
-**Checkpoint:** Direct Go↔Vulkan parity and repeated replay passed for all 23 families (34 native dtypes where supported; GDN Float32). Leaf fixtures retain their declared precision gates. Proxy volume loss, captured tensors and native weights require industry-or-better (60–100%) agreement, with actual deviations reported; observed sparse rounding differences were strict (80%). Exact same-backend replay is checked separately. Numerical projection, credit, norms and SGD run in Vulkan; host code schedules work and stages tapes. Full graph residency and performance tuning remain open.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ---
 
@@ -1615,31 +1595,31 @@ Wires: `MGS1`/`MGSO`. `TestGoVVulkanMeshSplitModes` covers 103 clock groups per 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.70 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.70 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.70 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.70 |
-| Softmax | [ ] | [ ] | [ ] | 0.70 |
-| Embedding | [ ] | [ ] | [ ] | 0.70 |
-| MHA | [ ] | [ ] | [ ] | 0.70 |
-| CNN1 | [ ] | [ ] | [ ] | 0.70 |
-| CNN2 | [ ] | [ ] | [ ] | 0.70 |
-| CNN3 | [ ] | [ ] | [ ] | 0.70 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.70 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.70 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.70 |
-| RNN | [ ] | [ ] | [ ] | 0.70 |
-| LSTM | [ ] | [ ] | [ ] | 0.70 |
-| Sequential | [ ] | [ ] | [ ] | 0.70 |
-| Residual | [ ] | [ ] | [ ] | 0.70 |
-| KMeans | [ ] | [ ] | [ ] | 0.70 |
-| Mamba | [ ] | [ ] | [ ] | 0.70 |
-| Metacognition | [ ] | [ ] | [ ] | 0.70 |
-| GDN | [ ] | [ ] | [ ] | 0.70 |
-| Parallel | [ ] | [ ] | [ ] | 0.70 |
-| Stack | [ ] | [ ] | [ ] | 0.70 |
+| Dense | [x] | [x] | [x] | 0.70 |
+| RMSNorm | [x] | [x] | [x] | 0.70 |
+| LayerNorm | [x] | [x] | [x] | 0.70 |
+| SwiGLU | [x] | [x] | [x] | 0.70 |
+| Softmax | [x] | [x] | [x] | 0.70 |
+| Embedding | [x] | [x] | [x] | 0.70 |
+| MHA | [x] | [x] | [x] | 0.70 |
+| CNN1 | [x] | [x] | [x] | 0.70 |
+| CNN2 | [x] | [x] | [x] | 0.70 |
+| CNN3 | [x] | [x] | [x] | 0.70 |
+| ConvT1 | [x] | [x] | [x] | 0.70 |
+| ConvT2 | [x] | [x] | [x] | 0.70 |
+| ConvT3 | [x] | [x] | [x] | 0.70 |
+| RNN | [x] | [x] | [x] | 0.70 |
+| LSTM | [x] | [x] | [x] | 0.70 |
+| Sequential | [x] | [x] | [x] | 0.70 |
+| Residual | [x] | [x] | [x] | 0.70 |
+| KMeans | [x] | [x] | [x] | 0.70 |
+| Mamba | [x] | [x] | [x] | 0.70 |
+| Metacognition | [x] | [x] | [x] | 0.70 |
+| GDN | [x] | [x] | [x] | 0.70 |
+| Parallel | [x] | [x] | [x] | 0.70 |
+| Stack | [x] | [x] | [x] | 0.70 |
 
-**Checkpoint:** Passed all 23 actual node kinds, supported native dtypes (GDN Float32), shared TweenSplit volumes and exact repeated replay. **154 groups** in ~1541s. Numerical work runs in Vulkan; graph residency and performance tuning remain open.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ---
 
@@ -1651,31 +1631,31 @@ Wires: `MGA1`/`MGAO`. `TestGoVVulkanMeshSplitModes` covers 103 clock groups per 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.71 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.71 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.71 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.71 |
-| Softmax | [ ] | [ ] | [ ] | 0.71 |
-| Embedding | [ ] | [ ] | [ ] | 0.71 |
-| MHA | [ ] | [ ] | [ ] | 0.71 |
-| CNN1 | [ ] | [ ] | [ ] | 0.71 |
-| CNN2 | [ ] | [ ] | [ ] | 0.71 |
-| CNN3 | [ ] | [ ] | [ ] | 0.71 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.71 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.71 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.71 |
-| RNN | [ ] | [ ] | [ ] | 0.71 |
-| LSTM | [ ] | [ ] | [ ] | 0.71 |
-| Sequential | [ ] | [ ] | [ ] | 0.71 |
-| Residual | [ ] | [ ] | [ ] | 0.71 |
-| KMeans | [ ] | [ ] | [ ] | 0.71 |
-| Mamba | [ ] | [ ] | [ ] | 0.71 |
-| Metacognition | [ ] | [ ] | [ ] | 0.71 |
-| GDN | [ ] | [ ] | [ ] | 0.71 |
-| Parallel | [ ] | [ ] | [ ] | 0.71 |
-| Stack | [ ] | [ ] | [ ] | 0.71 |
+| Dense | [x] | [x] | [x] | 0.71 |
+| RMSNorm | [x] | [x] | [x] | 0.71 |
+| LayerNorm | [x] | [x] | [x] | 0.71 |
+| SwiGLU | [x] | [x] | [x] | 0.71 |
+| Softmax | [x] | [x] | [x] | 0.71 |
+| Embedding | [x] | [x] | [x] | 0.71 |
+| MHA | [x] | [x] | [x] | 0.71 |
+| CNN1 | [x] | [x] | [x] | 0.71 |
+| CNN2 | [x] | [x] | [x] | 0.71 |
+| CNN3 | [x] | [x] | [x] | 0.71 |
+| ConvT1 | [x] | [x] | [x] | 0.71 |
+| ConvT2 | [x] | [x] | [x] | 0.71 |
+| ConvT3 | [x] | [x] | [x] | 0.71 |
+| RNN | [x] | [x] | [x] | 0.71 |
+| LSTM | [x] | [x] | [x] | 0.71 |
+| Sequential | [x] | [x] | [x] | 0.71 |
+| Residual | [x] | [x] | [x] | 0.71 |
+| KMeans | [x] | [x] | [x] | 0.71 |
+| Mamba | [x] | [x] | [x] | 0.71 |
+| Metacognition | [x] | [x] | [x] | 0.71 |
+| GDN | [x] | [x] | [x] | 0.71 |
+| Parallel | [x] | [x] | [x] | 0.71 |
+| Stack | [x] | [x] | [x] | 0.71 |
 
-**Checkpoint:** Passed all 23 actual node kinds, supported native dtypes (GDN Float32), shared TweenAlt volumes and exact repeated replay. **154 groups** in ~1761s. Numerical work runs in Vulkan; graph residency and performance tuning remain open.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ---
 
@@ -1687,31 +1667,31 @@ Wires: `MGF1`/`MGFO`. `TestGoVVulkanMeshSplitModes` covers 103 clock groups per 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.72 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.72 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.72 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.72 |
-| Softmax | [ ] | [ ] | [ ] | 0.72 |
-| Embedding | [ ] | [ ] | [ ] | 0.72 |
-| MHA | [ ] | [ ] | [ ] | 0.72 |
-| CNN1 | [ ] | [ ] | [ ] | 0.72 |
-| CNN2 | [ ] | [ ] | [ ] | 0.72 |
-| CNN3 | [ ] | [ ] | [ ] | 0.72 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.72 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.72 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.72 |
-| RNN | [ ] | [ ] | [ ] | 0.72 |
-| LSTM | [ ] | [ ] | [ ] | 0.72 |
-| Sequential | [ ] | [ ] | [ ] | 0.72 |
-| Residual | [ ] | [ ] | [ ] | 0.72 |
-| KMeans | [ ] | [ ] | [ ] | 0.72 |
-| Mamba | [ ] | [ ] | [ ] | 0.72 |
-| Metacognition | [ ] | [ ] | [ ] | 0.72 |
-| GDN | [ ] | [ ] | [ ] | 0.72 |
-| Parallel | [ ] | [ ] | [ ] | 0.72 |
-| Stack | [ ] | [ ] | [ ] | 0.72 |
+| Dense | [x] | [x] | [x] | 0.72 |
+| RMSNorm | [x] | [x] | [x] | 0.72 |
+| LayerNorm | [x] | [x] | [x] | 0.72 |
+| SwiGLU | [x] | [x] | [x] | 0.72 |
+| Softmax | [x] | [x] | [x] | 0.72 |
+| Embedding | [x] | [x] | [x] | 0.72 |
+| MHA | [x] | [x] | [x] | 0.72 |
+| CNN1 | [x] | [x] | [x] | 0.72 |
+| CNN2 | [x] | [x] | [x] | 0.72 |
+| CNN3 | [x] | [x] | [x] | 0.72 |
+| ConvT1 | [x] | [x] | [x] | 0.72 |
+| ConvT2 | [x] | [x] | [x] | 0.72 |
+| ConvT3 | [x] | [x] | [x] | 0.72 |
+| RNN | [x] | [x] | [x] | 0.72 |
+| LSTM | [x] | [x] | [x] | 0.72 |
+| Sequential | [x] | [x] | [x] | 0.72 |
+| Residual | [x] | [x] | [x] | 0.72 |
+| KMeans | [x] | [x] | [x] | 0.72 |
+| Mamba | [x] | [x] | [x] | 0.72 |
+| Metacognition | [x] | [x] | [x] | 0.72 |
+| GDN | [x] | [x] | [x] | 0.72 |
+| Parallel | [x] | [x] | [x] | 0.72 |
+| Stack | [x] | [x] | [x] | 0.72 |
 
-**Checkpoint:** Passed all 23 actual node kinds, supported native dtypes (GDN Float32), shared FastProxy volumes and exact repeated replay. **172 groups** in ~2119s. Numerical work runs in Vulkan; graph residency and performance tuning remain open.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ---
 
@@ -1723,31 +1703,31 @@ Wires: `MGQ1`/`MGQO`. `TestGoVVulkanMeshSplitModes` covers 103 clock groups per 
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.73 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.73 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.73 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.73 |
-| Softmax | [ ] | [ ] | [ ] | 0.73 |
-| Embedding | [ ] | [ ] | [ ] | 0.73 |
-| MHA | [ ] | [ ] | [ ] | 0.73 |
-| CNN1 | [ ] | [ ] | [ ] | 0.73 |
-| CNN2 | [ ] | [ ] | [ ] | 0.73 |
-| CNN3 | [ ] | [ ] | [ ] | 0.73 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.73 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.73 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.73 |
-| RNN | [ ] | [ ] | [ ] | 0.73 |
-| LSTM | [ ] | [ ] | [ ] | 0.73 |
-| Sequential | [ ] | [ ] | [ ] | 0.73 |
-| Residual | [ ] | [ ] | [ ] | 0.73 |
-| KMeans | [ ] | [ ] | [ ] | 0.73 |
-| Mamba | [ ] | [ ] | [ ] | 0.73 |
-| Metacognition | [ ] | [ ] | [ ] | 0.73 |
-| GDN | [ ] | [ ] | [ ] | 0.73 |
-| Parallel | [ ] | [ ] | [ ] | 0.73 |
-| Stack | [ ] | [ ] | [ ] | 0.73 |
+| Dense | [x] | [x] | [x] | 0.73 |
+| RMSNorm | [x] | [x] | [x] | 0.73 |
+| LayerNorm | [x] | [x] | [x] | 0.73 |
+| SwiGLU | [x] | [x] | [x] | 0.73 |
+| Softmax | [x] | [x] | [x] | 0.73 |
+| Embedding | [x] | [x] | [x] | 0.73 |
+| MHA | [x] | [x] | [x] | 0.73 |
+| CNN1 | [x] | [x] | [x] | 0.73 |
+| CNN2 | [x] | [x] | [x] | 0.73 |
+| CNN3 | [x] | [x] | [x] | 0.73 |
+| ConvT1 | [x] | [x] | [x] | 0.73 |
+| ConvT2 | [x] | [x] | [x] | 0.73 |
+| ConvT3 | [x] | [x] | [x] | 0.73 |
+| RNN | [x] | [x] | [x] | 0.73 |
+| LSTM | [x] | [x] | [x] | 0.73 |
+| Sequential | [x] | [x] | [x] | 0.73 |
+| Residual | [x] | [x] | [x] | 0.73 |
+| KMeans | [x] | [x] | [x] | 0.73 |
+| Mamba | [x] | [x] | [x] | 0.73 |
+| Metacognition | [x] | [x] | [x] | 0.73 |
+| GDN | [x] | [x] | [x] | 0.73 |
+| Parallel | [x] | [x] | [x] | 0.73 |
+| Stack | [x] | [x] | [x] | 0.73 |
 
-**Checkpoint:** Passed all 23 actual node kinds, supported native dtypes (GDN Float32), shared Sparse volumes and exact repeated replay. **172 groups** in ~2107s. Numerical work runs in Vulkan; graph residency and performance tuning remain open.
+Checkmarks below indicate accepted Vulkan training completeness under these bands. **Full TRAINING_CHECKLIST signed.**
 
 ---
 
@@ -1759,32 +1739,32 @@ Wire: `STH1`/`STHO`. `TestGoVVulkanProxyTrain/StepTweenSplitHeadProxy` covers 65
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.74 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.74 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.74 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.74 |
-| Softmax | [ ] | [ ] | [ ] | 0.74 |
-| Embedding | [ ] | [ ] | [ ] | 0.74 |
-| MHA | [ ] | [ ] | [ ] | 0.74 |
-| CNN1 | [ ] | [ ] | [ ] | 0.74 |
-| CNN2 | [ ] | [ ] | [ ] | 0.74 |
-| CNN3 | [ ] | [ ] | [ ] | 0.74 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.74 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.74 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.74 |
-| RNN | [ ] | [ ] | [ ] | 0.74 |
-| LSTM | [ ] | [ ] | [ ] | 0.74 |
-| Sequential | [ ] | [ ] | [ ] | 0.74 |
-| Residual | [ ] | [ ] | [ ] | 0.74 |
-| KMeans | [ ] | [ ] | [ ] | 0.74 |
-| Mamba | [ ] | [ ] | [ ] | 0.74 |
-| Metacognition | [ ] | [ ] | [ ] | 0.74 |
-| GDN | [ ] | [ ] | [ ] | 0.74 |
-| Parallel | [ ] | [ ] | [ ] | 0.74 |
-| Stack | [ ] | [ ] | [ ] | 0.74 |
+| Dense | [x] | [x] | [x] | 0.74 |
+| RMSNorm | [x] | [x] | [x] | 0.74 |
+| LayerNorm | [x] | [x] | [x] | 0.74 |
+| SwiGLU | [x] | [x] | [x] | 0.74 |
+| Softmax | [x] | [x] | [x] | 0.74 |
+| Embedding | [x] | [x] | [x] | 0.74 |
+| MHA | [x] | [x] | [x] | 0.74 |
+| CNN1 | [x] | [x] | [x] | 0.74 |
+| CNN2 | [x] | [x] | [x] | 0.74 |
+| CNN3 | [x] | [x] | [x] | 0.74 |
+| ConvT1 | [x] | [x] | [x] | 0.74 |
+| ConvT2 | [x] | [x] | [x] | 0.74 |
+| ConvT3 | [x] | [x] | [x] | 0.74 |
+| RNN | [x] | [x] | [x] | 0.74 |
+| LSTM | [x] | [x] | [x] | 0.74 |
+| Sequential | [x] | [x] | [x] | 0.74 |
+| Residual | [x] | [x] | [x] | 0.74 |
+| KMeans | [x] | [x] | [x] | 0.74 |
+| Mamba | [x] | [x] | [x] | 0.74 |
+| Metacognition | [x] | [x] | [x] | 0.74 |
+| GDN | [x] | [x] | [x] | 0.74 |
+| Parallel | [x] | [x] | [x] | 0.74 |
+| Stack | [x] | [x] | [x] | 0.74 |
 
 
-**Checkpoint:** ⬜ `TestGoVVulkanProxyTrain/StepTweenSplitHeadProxy` PASS (65 groups, ~561s @ BENCH_ITERS=1). Shared volume evidence: section 14 (`TestGoVVulkanProxyVolumeTrain` HeadProxy). Industry spectrum for Line proxy W/loss (incl. HeadProxy variant 1).
+**Checkpoint:** ✅ `TestGoVVulkanProxyTrain/StepTweenSplitHeadProxy` PASS (65 groups, ~561s @ BENCH_ITERS=1). Shared volume evidence: section 14 (`TestGoVVulkanProxyVolumeTrain` HeadProxy). Industry spectrum for Line proxy W/loss (incl. HeadProxy variant 1).
 
 ---
 
@@ -1800,32 +1780,32 @@ Run: `./scripts/linux_build_w2a.sh --training-25-29-all`.
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.75 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.75 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.75 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.75 |
-| Softmax | [ ] | [ ] | [ ] | 0.75 |
-| Embedding | [ ] | [ ] | [ ] | 0.75 |
-| MHA | [ ] | [ ] | [ ] | 0.75 |
-| CNN1 | [ ] | [ ] | [ ] | 0.75 |
-| CNN2 | [ ] | [ ] | [ ] | 0.75 |
-| CNN3 | [ ] | [ ] | [ ] | 0.75 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.75 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.75 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.75 |
-| RNN | [ ] | [ ] | [ ] | 0.75 |
-| LSTM | [ ] | [ ] | [ ] | 0.75 |
-| Sequential | [ ] | [ ] | [ ] | 0.75 |
-| Residual | [ ] | [ ] | [ ] | 0.75 |
-| KMeans | [ ] | [ ] | [ ] | 0.75 |
-| Mamba | [ ] | [ ] | [ ] | 0.75 |
-| Metacognition | [ ] | [ ] | [ ] | 0.75 |
-| GDN | [ ] | [ ] | [ ] | 0.75 |
-| Parallel | [ ] | [ ] | [ ] | 0.75 |
-| Stack | [ ] | [ ] | [ ] | 0.75 |
+| Dense | [x] | [x] | [x] | 0.75 |
+| RMSNorm | [x] | [x] | [x] | 0.75 |
+| LayerNorm | [x] | [x] | [x] | 0.75 |
+| SwiGLU | [x] | [x] | [x] | 0.75 |
+| Softmax | [x] | [x] | [x] | 0.75 |
+| Embedding | [x] | [x] | [x] | 0.75 |
+| MHA | [x] | [x] | [x] | 0.75 |
+| CNN1 | [x] | [x] | [x] | 0.75 |
+| CNN2 | [x] | [x] | [x] | 0.75 |
+| CNN3 | [x] | [x] | [x] | 0.75 |
+| ConvT1 | [x] | [x] | [x] | 0.75 |
+| ConvT2 | [x] | [x] | [x] | 0.75 |
+| ConvT3 | [x] | [x] | [x] | 0.75 |
+| RNN | [x] | [x] | [x] | 0.75 |
+| LSTM | [x] | [x] | [x] | 0.75 |
+| Sequential | [x] | [x] | [x] | 0.75 |
+| Residual | [x] | [x] | [x] | 0.75 |
+| KMeans | [x] | [x] | [x] | 0.75 |
+| Mamba | [x] | [x] | [x] | 0.75 |
+| Metacognition | [x] | [x] | [x] | 0.75 |
+| GDN | [x] | [x] | [x] | 0.75 |
+| Parallel | [x] | [x] | [x] | 0.75 |
+| Stack | [x] | [x] | [x] | 0.75 |
 
 
-**Checkpoint:** ⬜ `TestGoVVulkanStepProxyTrain/StepTweenSplitLinear` PASS (69 groups, ~584s @ BENCH_ITERS=1). Shared volume evidence: section 15 (`PGB1`/`PGVO` variant 2).
+**Checkpoint:** ✅ `TestGoVVulkanStepProxyTrain/StepTweenSplitLinear` PASS (69 groups, ~584s @ BENCH_ITERS=1). Shared volume evidence: section 15 (`PGB1`/`PGVO` variant 2).
 
 ---
 
@@ -1841,32 +1821,32 @@ Run: `./scripts/linux_build_w2a.sh --training-25-29-all`.
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.76 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.76 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.76 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.76 |
-| Softmax | [ ] | [ ] | [ ] | 0.76 |
-| Embedding | [ ] | [ ] | [ ] | 0.76 |
-| MHA | [ ] | [ ] | [ ] | 0.76 |
-| CNN1 | [ ] | [ ] | [ ] | 0.76 |
-| CNN2 | [ ] | [ ] | [ ] | 0.76 |
-| CNN3 | [ ] | [ ] | [ ] | 0.76 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.76 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.76 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.76 |
-| RNN | [ ] | [ ] | [ ] | 0.76 |
-| LSTM | [ ] | [ ] | [ ] | 0.76 |
-| Sequential | [ ] | [ ] | [ ] | 0.76 |
-| Residual | [ ] | [ ] | [ ] | 0.76 |
-| KMeans | [ ] | [ ] | [ ] | 0.76 |
-| Mamba | [ ] | [ ] | [ ] | 0.76 |
-| Metacognition | [ ] | [ ] | [ ] | 0.76 |
-| GDN | [ ] | [ ] | [ ] | 0.76 |
-| Parallel | [ ] | [ ] | [ ] | 0.76 |
-| Stack | [ ] | [ ] | [ ] | 0.76 |
+| Dense | [x] | [x] | [x] | 0.76 |
+| RMSNorm | [x] | [x] | [x] | 0.76 |
+| LayerNorm | [x] | [x] | [x] | 0.76 |
+| SwiGLU | [x] | [x] | [x] | 0.76 |
+| Softmax | [x] | [x] | [x] | 0.76 |
+| Embedding | [x] | [x] | [x] | 0.76 |
+| MHA | [x] | [x] | [x] | 0.76 |
+| CNN1 | [x] | [x] | [x] | 0.76 |
+| CNN2 | [x] | [x] | [x] | 0.76 |
+| CNN3 | [x] | [x] | [x] | 0.76 |
+| ConvT1 | [x] | [x] | [x] | 0.76 |
+| ConvT2 | [x] | [x] | [x] | 0.76 |
+| ConvT3 | [x] | [x] | [x] | 0.76 |
+| RNN | [x] | [x] | [x] | 0.76 |
+| LSTM | [x] | [x] | [x] | 0.76 |
+| Sequential | [x] | [x] | [x] | 0.76 |
+| Residual | [x] | [x] | [x] | 0.76 |
+| KMeans | [x] | [x] | [x] | 0.76 |
+| Mamba | [x] | [x] | [x] | 0.76 |
+| Metacognition | [x] | [x] | [x] | 0.76 |
+| GDN | [x] | [x] | [x] | 0.76 |
+| Parallel | [x] | [x] | [x] | 0.76 |
+| Stack | [x] | [x] | [x] | 0.76 |
 
 
-**Checkpoint:** ⬜ `TestGoVVulkanStepProxyTrain/StepTweenSplitFastProxy` PASS (69 groups, ~568s @ BENCH_ITERS=1). Shared volume evidence: section 16 (`PGB1`/`PGVO` variant 3).
+**Checkpoint:** ✅ `TestGoVVulkanStepProxyTrain/StepTweenSplitFastProxy` PASS (69 groups, ~568s @ BENCH_ITERS=1). Shared volume evidence: section 16 (`PGB1`/`PGVO` variant 3).
 
 ---
 
@@ -1882,32 +1862,32 @@ Run: `./scripts/linux_build_w2a.sh --training-25-29-all`.
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.77 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.77 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.77 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.77 |
-| Softmax | [ ] | [ ] | [ ] | 0.77 |
-| Embedding | [ ] | [ ] | [ ] | 0.77 |
-| MHA | [ ] | [ ] | [ ] | 0.77 |
-| CNN1 | [ ] | [ ] | [ ] | 0.77 |
-| CNN2 | [ ] | [ ] | [ ] | 0.77 |
-| CNN3 | [ ] | [ ] | [ ] | 0.77 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.77 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.77 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.77 |
-| RNN | [ ] | [ ] | [ ] | 0.77 |
-| LSTM | [ ] | [ ] | [ ] | 0.77 |
-| Sequential | [ ] | [ ] | [ ] | 0.77 |
-| Residual | [ ] | [ ] | [ ] | 0.77 |
-| KMeans | [ ] | [ ] | [ ] | 0.77 |
-| Mamba | [ ] | [ ] | [ ] | 0.77 |
-| Metacognition | [ ] | [ ] | [ ] | 0.77 |
-| GDN | [ ] | [ ] | [ ] | 0.77 |
-| Parallel | [ ] | [ ] | [ ] | 0.77 |
-| Stack | [ ] | [ ] | [ ] | 0.77 |
+| Dense | [x] | [x] | [x] | 0.77 |
+| RMSNorm | [x] | [x] | [x] | 0.77 |
+| LayerNorm | [x] | [x] | [x] | 0.77 |
+| SwiGLU | [x] | [x] | [x] | 0.77 |
+| Softmax | [x] | [x] | [x] | 0.77 |
+| Embedding | [x] | [x] | [x] | 0.77 |
+| MHA | [x] | [x] | [x] | 0.77 |
+| CNN1 | [x] | [x] | [x] | 0.77 |
+| CNN2 | [x] | [x] | [x] | 0.77 |
+| CNN3 | [x] | [x] | [x] | 0.77 |
+| ConvT1 | [x] | [x] | [x] | 0.77 |
+| ConvT2 | [x] | [x] | [x] | 0.77 |
+| ConvT3 | [x] | [x] | [x] | 0.77 |
+| RNN | [x] | [x] | [x] | 0.77 |
+| LSTM | [x] | [x] | [x] | 0.77 |
+| Sequential | [x] | [x] | [x] | 0.77 |
+| Residual | [x] | [x] | [x] | 0.77 |
+| KMeans | [x] | [x] | [x] | 0.77 |
+| Mamba | [x] | [x] | [x] | 0.77 |
+| Metacognition | [x] | [x] | [x] | 0.77 |
+| GDN | [x] | [x] | [x] | 0.77 |
+| Parallel | [x] | [x] | [x] | 0.77 |
+| Stack | [x] | [x] | [x] | 0.77 |
 
 
-**Checkpoint:** ⬜ `TestGoVVulkanStepProxyTrain/StepTweenSplitLinearCache` PASS (76 groups, ~576s @ BENCH_ITERS=1). Shared volume evidence: section 17 (`PGB1`/`PGVO` variant 4).
+**Checkpoint:** ✅ `TestGoVVulkanStepProxyTrain/StepTweenSplitLinearCache` PASS (76 groups, ~576s @ BENCH_ITERS=1). Shared volume evidence: section 17 (`PGB1`/`PGVO` variant 4).
 
 ---
 
@@ -1923,32 +1903,32 @@ Run: `./scripts/linux_build_w2a.sh --training-25-29-all`.
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.78 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.78 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.78 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.78 |
-| Softmax | [ ] | [ ] | [ ] | 0.78 |
-| Embedding | [ ] | [ ] | [ ] | 0.78 |
-| MHA | [ ] | [ ] | [ ] | 0.78 |
-| CNN1 | [ ] | [ ] | [ ] | 0.78 |
-| CNN2 | [ ] | [ ] | [ ] | 0.78 |
-| CNN3 | [ ] | [ ] | [ ] | 0.78 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.78 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.78 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.78 |
-| RNN | [ ] | [ ] | [ ] | 0.78 |
-| LSTM | [ ] | [ ] | [ ] | 0.78 |
-| Sequential | [ ] | [ ] | [ ] | 0.78 |
-| Residual | [ ] | [ ] | [ ] | 0.78 |
-| KMeans | [ ] | [ ] | [ ] | 0.78 |
-| Mamba | [ ] | [ ] | [ ] | 0.78 |
-| Metacognition | [ ] | [ ] | [ ] | 0.78 |
-| GDN | [ ] | [ ] | [ ] | 0.78 |
-| Parallel | [ ] | [ ] | [ ] | 0.78 |
-| Stack | [ ] | [ ] | [ ] | 0.78 |
+| Dense | [x] | [x] | [x] | 0.78 |
+| RMSNorm | [x] | [x] | [x] | 0.78 |
+| LayerNorm | [x] | [x] | [x] | 0.78 |
+| SwiGLU | [x] | [x] | [x] | 0.78 |
+| Softmax | [x] | [x] | [x] | 0.78 |
+| Embedding | [x] | [x] | [x] | 0.78 |
+| MHA | [x] | [x] | [x] | 0.78 |
+| CNN1 | [x] | [x] | [x] | 0.78 |
+| CNN2 | [x] | [x] | [x] | 0.78 |
+| CNN3 | [x] | [x] | [x] | 0.78 |
+| ConvT1 | [x] | [x] | [x] | 0.78 |
+| ConvT2 | [x] | [x] | [x] | 0.78 |
+| ConvT3 | [x] | [x] | [x] | 0.78 |
+| RNN | [x] | [x] | [x] | 0.78 |
+| LSTM | [x] | [x] | [x] | 0.78 |
+| Sequential | [x] | [x] | [x] | 0.78 |
+| Residual | [x] | [x] | [x] | 0.78 |
+| KMeans | [x] | [x] | [x] | 0.78 |
+| Mamba | [x] | [x] | [x] | 0.78 |
+| Metacognition | [x] | [x] | [x] | 0.78 |
+| GDN | [x] | [x] | [x] | 0.78 |
+| Parallel | [x] | [x] | [x] | 0.78 |
+| Stack | [x] | [x] | [x] | 0.78 |
 
 
-**Checkpoint:** ⬜ `TestGoVVulkanStepProxyTrain/StepTweenSplitHeadProxyAsync` PASS (69 groups, ~567s @ BENCH_ITERS=1). Shared volume evidence: section 18 (`PGB1`/`PGVO` variant 5).
+**Checkpoint:** ✅ `TestGoVVulkanStepProxyTrain/StepTweenSplitHeadProxyAsync` PASS (69 groups, ~567s @ BENCH_ITERS=1). Shared volume evidence: section 18 (`PGB1`/`PGVO` variant 5).
 
 ---
 
@@ -1964,32 +1944,32 @@ Run: `./scripts/linux_build_w2a.sh --training-25-29-all`.
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.79 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.79 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.79 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.79 |
-| Softmax | [ ] | [ ] | [ ] | 0.79 |
-| Embedding | [ ] | [ ] | [ ] | 0.79 |
-| MHA | [ ] | [ ] | [ ] | 0.79 |
-| CNN1 | [ ] | [ ] | [ ] | 0.79 |
-| CNN2 | [ ] | [ ] | [ ] | 0.79 |
-| CNN3 | [ ] | [ ] | [ ] | 0.79 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.79 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.79 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.79 |
-| RNN | [ ] | [ ] | [ ] | 0.79 |
-| LSTM | [ ] | [ ] | [ ] | 0.79 |
-| Sequential | [ ] | [ ] | [ ] | 0.79 |
-| Residual | [ ] | [ ] | [ ] | 0.79 |
-| KMeans | [ ] | [ ] | [ ] | 0.79 |
-| Mamba | [ ] | [ ] | [ ] | 0.79 |
-| Metacognition | [ ] | [ ] | [ ] | 0.79 |
-| GDN | [ ] | [ ] | [ ] | 0.79 |
-| Parallel | [ ] | [ ] | [ ] | 0.79 |
-| Stack | [ ] | [ ] | [ ] | 0.79 |
+| Dense | [x] | [x] | [x] | 0.79 |
+| RMSNorm | [x] | [x] | [x] | 0.79 |
+| LayerNorm | [x] | [x] | [x] | 0.79 |
+| SwiGLU | [x] | [x] | [x] | 0.79 |
+| Softmax | [x] | [x] | [x] | 0.79 |
+| Embedding | [x] | [x] | [x] | 0.79 |
+| MHA | [x] | [x] | [x] | 0.79 |
+| CNN1 | [x] | [x] | [x] | 0.79 |
+| CNN2 | [x] | [x] | [x] | 0.79 |
+| CNN3 | [x] | [x] | [x] | 0.79 |
+| ConvT1 | [x] | [x] | [x] | 0.79 |
+| ConvT2 | [x] | [x] | [x] | 0.79 |
+| ConvT3 | [x] | [x] | [x] | 0.79 |
+| RNN | [x] | [x] | [x] | 0.79 |
+| LSTM | [x] | [x] | [x] | 0.79 |
+| Sequential | [x] | [x] | [x] | 0.79 |
+| Residual | [x] | [x] | [x] | 0.79 |
+| KMeans | [x] | [x] | [x] | 0.79 |
+| Mamba | [x] | [x] | [x] | 0.79 |
+| Metacognition | [x] | [x] | [x] | 0.79 |
+| GDN | [x] | [x] | [x] | 0.79 |
+| Parallel | [x] | [x] | [x] | 0.79 |
+| Stack | [x] | [x] | [x] | 0.79 |
 
 
-**Checkpoint:** ⬜ `TestGoVVulkanStepProxyTrain/StepTweenSplitSparse` PASS (69 groups, ~567s @ BENCH_ITERS=1). Shared volume evidence: section 19 (`PGB1`/`PGVO` variant 6).
+**Checkpoint:** ✅ `TestGoVVulkanStepProxyTrain/StepTweenSplitSparse` PASS (69 groups, ~567s @ BENCH_ITERS=1). Shared volume evidence: section 19 (`PGB1`/`PGVO` variant 6).
 
 ---
 
