@@ -1,0 +1,24 @@
+#version 450
+
+// M0 smoke: y[i] = a * x[i] + b
+layout(local_size_x = 64) in;
+
+layout(set = 0, binding = 0) readonly buffer XBuf {
+  float x[];
+};
+
+layout(set = 0, binding = 1) writeonly buffer YBuf {
+  float y[];
+};
+
+layout(push_constant) uniform Push {
+  float a;
+  float b;
+  uint n;
+} pc;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= pc.n) return;
+  y[i] = pc.a * x[i] + pc.b;
+}
