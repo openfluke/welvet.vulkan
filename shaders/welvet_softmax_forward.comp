@@ -1,0 +1,115 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+#include "welvet_f64math.inc"
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer XBuf {
+  float x[];
+};
+layout(set = 0, binding = 1) buffer OutBuf {
+  float out_data[];
+};
+layout(set = 0, binding = 2) buffer LogitsBuf {
+  float logits[];
+};
+layout(set = 0, binding = 3) buffer SortedBuf {
+  float sorted[];
+};
+layout(set = 0, binding = 4) readonly buffer MaskBuf {
+  int mask[];
+};
+
+layout(push_constant) uniform Push {
+  int rows;
+  int cols;
+  int kind;
+  int mask_len;
+  uint gumbel_seed;
+  double temperature;
+  float entmax_alpha;
+  int has_mask;
+} pc;
+
+void main() {
+  uint tid = gl_GlobalInvocationID.x;
+  if (int(tid) >= pc.rows) return;
+  int start = int(tid) * pc.cols;
+  double inv_t = 1.0 / (pc.temperature == 0.0 ? 1.0 : pc.temperature);
+  uint state = pc.gumbel_seed;
+  if (state == 0u) state = 0xC0FFEEu;
+  if (pc.kind == 2) {
+    for (int i = 0; i < start; ++i) {
+      state = state * 1664525u + 1013904223u;
+    }
+  }
+  float mx = -1.0 / 0.0;
+  for (int i = 0; i < pc.cols; ++i) {
+    float v = float(double(x[start + i]) * inv_t);
+    if (pc.kind == 3 && pc.has_mask != 0 && start + i < pc.mask_len && mask[start + i] == 0) {
+      v = -1e9;
+    }
+    if (pc.kind == 2) {
+      state = state * 1664525u + 1013904223u;
+      float u = float(state >> 8u) * (1.0 / 16777216.0);
+      if (u < 1e-10) u = 1e-10;
+      v -= float(welvet_d_log(-welvet_d_log(double(u))));
+    }
+    logits[start + i] = v;
+    sorted[start + i] = v;
+    if (v > mx) mx = v;
+  }
+  float se = 0.0;
+  for (int i = 0; i < pc.cols; ++i) {
+    // Go: exp in float64, then round each term to Float32.
+    float e = float(welvet_d_exp(double(logits[start + i] - mx)));
+    out_data[start + i] = e;
+    se += e;
+  }
+  for (int i = 0; i < pc.cols; ++i) {
+    out_data[start + i] /= se;
+  }
+  float alpha = pc.entmax_alpha;
+  if (alpha == 0.0) alpha = 1.5;
+  if (pc.kind == 4 || (pc.kind == 5 && alpha > 1.0)) {
+    for (int i = 0; i < pc.cols; ++i) {
+      for (int k = i + 1; k < pc.cols; ++k) {
+        if (sorted[start + i] < sorted[start + k]) {
+          float tmp = sorted[start + i];
+          sorted[start + i] = sorted[start + k];
+          sorted[start + k] = tmp;
+        }
+      }
+    }
+    float cum = 0.0;
+    int count = 0;
+    for (int i = 0; i < pc.cols; ++i) {
+      cum += sorted[start + i];
+      if (sorted[start + i] - (cum - 1.0) / float(i + 1) > 0.0) {
+        count = i + 1;
+      } else {
+        break;
+      }
+    }
+    float tau = 0.0;
+    if (count != 0) {
+      cum = 0.0;
+      for (int i = 0; i < count; ++i) cum += sorted[start + i];
+      tau = (cum - 1.0) / float(count);
+    }
+    float sum = 0.0;
+    for (int i = 0; i < pc.cols; ++i) {
+      float sp = max(0.0, logits[start + i] - tau);
+      if (pc.kind == 4 || alpha >= 2.0) {
+        out_data[start + i] = sp;
+      } else {
+        out_data[start + i] = (2.0 - alpha) * out_data[start + i] + (alpha - 1.0) * sp;
+      }
+      sum += out_data[start + i];
+    }
+    if (pc.kind == 5 && alpha < 2.0) {
+      for (int i = 0; i < pc.cols; ++i) out_data[start + i] /= sum;
+    }
+  }
+}

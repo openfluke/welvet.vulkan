@@ -1,0 +1,35 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer WBuf {
+  double W[];
+};
+layout(set = 0, binding = 1) readonly buffer XBuf {
+  float x[];
+};
+layout(set = 0, binding = 2) writeonly buffer YBuf {
+  float y[];
+};
+
+layout(push_constant) uniform Push {
+  int batch;
+  int out_dim;
+  int in_dim;
+} pc;
+
+void main() {
+  uint idx = gl_GlobalInvocationID.x;
+  uint n = uint(pc.batch * pc.out_dim);
+  if (idx >= n) return;
+  uint b = idx / uint(pc.out_dim);
+  uint o = idx - b * uint(pc.out_dim);
+  uint wrow = o * uint(pc.in_dim);
+  uint xoff = b * uint(pc.in_dim);
+  double sum = 0.0;
+  for (int k = 0; k < pc.in_dim; ++k) {
+    sum += W[wrow + uint(k)] * double(x[xoff + uint(k)]);
+  }
+  y[idx] = float(sum);
+}

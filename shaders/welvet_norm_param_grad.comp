@@ -1,0 +1,35 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer PreBuf {
+  float pre[];
+};
+layout(set = 0, binding = 1) readonly buffer GyBuf {
+  float gy[];
+};
+layout(set = 0, binding = 2) buffer DWBuf {
+  float dW[];
+};
+
+layout(push_constant) uniform Push {
+  int n_tok;
+  int dim;
+  int center;
+} pc;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (int(i) >= pc.dim) return;
+  double dg = 0.0;
+  double db = 0.0;
+  for (int t = 0; t < pc.n_tok; ++t) {
+    int idx = t * pc.dim + int(i);
+    double d = double(gy[idx]);
+    dg += d * double(pre[idx]);
+    db += d;
+  }
+  dW[i] = float(dg);
+  if (pc.center != 0) dW[uint(pc.dim) + i] = float(db);
+}

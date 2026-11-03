@@ -1,9 +1,8 @@
 #include "welvet/status.hpp"
 
-// Header-only Status helpers; this TU keeps the core/ layout aligned with siblings.
 namespace welvet {
 namespace {
-const char kStatusAnchor = 0;
+volatile int status_tu_anchor = 0;
 }
-const char* status_tu_anchor() { return &kStatusAnchor; }
+void status_force_link() { status_tu_anchor = 1; }
 } // namespace welvet

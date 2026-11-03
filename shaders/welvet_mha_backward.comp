@@ -1,0 +1,140 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+#include "welvet_mha_common.inc"
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) readonly buffer QBuf { float q_proj[]; };
+layout(set = 0, binding = 1) readonly buffer KBuf { float k_proj[]; };
+layout(set = 0, binding = 2) readonly buffer VBuf { float v_proj[]; };
+layout(set = 0, binding = 3) readonly buffer GyBuf { float grad_attn[]; };
+layout(set = 0, binding = 4) writeonly buffer GQOutBuf { float gQ_out[]; };
+layout(set = 0, binding = 5) writeonly buffer GKOutBuf { float gK_out[]; };
+layout(set = 0, binding = 6) writeonly buffer GVOutBuf { float gV_out[]; };
+layout(set = 0, binding = 7) buffer CacheKBuf { double cache_k[]; };
+layout(set = 0, binding = 8) buffer CacheVBuf { double cache_v[]; };
+layout(set = 0, binding = 9) buffer QWorkBuf { double Q[]; };
+layout(set = 0, binding = 10) buffer GQBuf { double gQ[]; };
+layout(set = 0, binding = 11) buffer GKBuf { double gK[]; };
+layout(set = 0, binding = 12) buffer GVBuf { double gV[]; };
+layout(set = 0, binding = 13) buffer ScoresBuf { double scores[]; };
+layout(set = 0, binding = 14) buffer DWBuf { double dW[]; };
+layout(set = 0, binding = 15) buffer DScoreBuf { double d_score[]; };
+layout(set = 0, binding = 16) buffer KPosBuf { int k_positions[]; };
+
+layout(push_constant) uniform Push {
+  int batch; int seq; int num_heads; int num_kv; int head_dim; int msl;
+  int mask; int pos_kind; int softmax_kind; int window; int prefix_len; int window_causal;
+  double rope_theta; double scale_override;
+} pc;
+
+void main() {
+  if (gl_GlobalInvocationID.x != 0u) return;
+  int q_dim = pc.num_heads * pc.head_dim;
+  int kv_dim = pc.num_kv * pc.head_dim;
+  int heads_per_kv = pc.num_heads / pc.num_kv;
+  int bs = pc.batch * pc.seq;
+  double scale = pc.scale_override;
+  if (scale <= 0.0) scale = 1.0 / sqrt(double(pc.head_dim));
+  bool use_rope = (pc.pos_kind == 0 || pc.pos_kind == 3);
+  bool use_alibi = (pc.pos_kind == 2 || pc.pos_kind == 3);
+  bool use_sigmoid = (pc.softmax_kind == 1);
+  for (int i = 0; i < pc.msl * kv_dim; ++i) { gK[i] = 0.0; gV[i] = 0.0; }
+  for (int i = 0; i < bs * q_dim; ++i) gQ_out[i] = 0.0;
+  for (int i = 0; i < bs * kv_dim; ++i) { gK_out[i] = 0.0; gV_out[i] = 0.0; }
+  for (int b = 0; b < pc.batch; ++b) {
+    int seq_base = b * pc.seq;
+    for (int i = 0; i < pc.msl * kv_dim; ++i) { cache_k[i] = 0.0; cache_v[i] = 0.0; }
+    for (int i = 0; i < pc.seq * q_dim; ++i) gQ[i] = 0.0;
+    for (int s = 0; s < pc.seq; ++s) {
+      int pos = seq_base + s; int tok = b * pc.seq + s;
+      for (int i = 0; i < q_dim; ++i) Q[s * q_dim + i] = double(q_proj[tok * q_dim + i]);
+      int krow = (pos % pc.msl) * kv_dim;
+      for (int i = 0; i < kv_dim; ++i) {
+        cache_k[krow + i] = double(k_proj[tok * kv_dim + i]);
+        cache_v[krow + i] = double(v_proj[tok * kv_dim + i]);
+      }
+      if (use_rope) {
+        MHA_APPLY_ROPE(Q, s * q_dim, pos, pc.num_heads, pc.head_dim, pc.rope_theta);
+        MHA_APPLY_ROPE(cache_k, krow, pos, pc.num_kv, pc.head_dim, pc.rope_theta);
+      }
+    }
+    int kv_len = seq_base + pc.seq;
+    for (int h = 0; h < pc.num_heads; ++h) {
+      int kv_head = h / heads_per_kv;
+      for (int q_pos_rel = 0; q_pos_rel < pc.seq; ++q_pos_rel) {
+        int q_pos = seq_base + q_pos_rel;
+        int q_off = q_pos_rel * q_dim + h * pc.head_dim;
+        int g_off_tok = (b * pc.seq + q_pos_rel) * q_dim + h * pc.head_dim;
+        int n = 0; double max_score = -1e9;
+        for (int k_pos = 0; k_pos < kv_len; ++k_pos) {
+          if (!mha_attn_allow(q_pos, k_pos, pc.mask, pc.window, pc.msl, pc.prefix_len, pc.window_causal)) continue;
+          int k_idx = k_pos % pc.msl; double dot = 0.0;
+          int k_base = k_idx * kv_dim + kv_head * pc.head_dim;
+          for (int d = 0; d < pc.head_dim; ++d) dot += Q[q_off + d] * cache_k[k_base + d];
+          double score = dot * scale + mha_alibi_bias(h, pc.num_heads, q_pos, k_pos, use_alibi ? 1 : 0);
+          scores[n] = score; k_positions[n] = k_pos;
+          if (score > max_score) max_score = score; ++n;
+        }
+        if (n == 0) continue;
+        if (use_sigmoid) {
+          for (int i = 0; i < n; ++i) scores[i] = welvet_d_sigmoid(scores[i]);
+        } else {
+          double exp_sum = 0.0;
+          for (int i = 0; i < n; ++i) {
+            scores[i] = welvet_d_exp(scores[i] - max_score);
+            exp_sum += scores[i];
+          }
+          double inv = 1.0 / exp_sum;
+          for (int i = 0; i < n; ++i) scores[i] *= inv;
+        }
+        for (int i = 0; i < n; ++i) dW[i] = 0.0;
+        for (int d = 0; d < pc.head_dim; ++d) {
+          double dy = double(grad_attn[g_off_tok + d]);
+          for (int i = 0; i < n; ++i) {
+            int v_idx = k_positions[i] % pc.msl;
+            double v = cache_v[v_idx * kv_dim + kv_head * pc.head_dim + d];
+            gV[v_idx * kv_dim + kv_head * pc.head_dim + d] += scores[i] * dy;
+            dW[i] += v * dy;
+          }
+        }
+        if (use_sigmoid) {
+          for (int i = 0; i < n; ++i) { double sig = scores[i]; d_score[i] = dW[i] * sig * (1.0 - sig) * scale; }
+        } else {
+          double sum = 0.0;
+          for (int i = 0; i < n; ++i) sum += dW[i] * scores[i];
+          for (int i = 0; i < n; ++i) d_score[i] = scores[i] * (dW[i] - sum) * scale;
+        }
+        for (int i = 0; i < n; ++i) {
+          int k_idx = k_positions[i] % pc.msl;
+          int k_base = k_idx * kv_dim + kv_head * pc.head_dim;
+          double ds = d_score[i];
+          for (int d = 0; d < pc.head_dim; ++d) {
+            gQ[q_off + d] += ds * cache_k[k_base + d];
+            gK[k_base + d] += ds * Q[q_off + d];
+          }
+        }
+      }
+    }
+    for (int s = 0; s < pc.seq; ++s) {
+      int pos = seq_base + s;
+      if (use_rope) MHA_APPLY_ROPE_BWD(gQ, s * q_dim, pos, pc.num_heads, pc.head_dim, pc.rope_theta);
+      int tok = b * pc.seq + s;
+      for (int i = 0; i < q_dim; ++i) gQ_out[tok * q_dim + i] = float(gQ[s * q_dim + i]);
+    }
+    if (use_rope) {
+      for (int s = 0; s < pc.seq; ++s) {
+        int pos = seq_base + s; int k_idx = pos % pc.msl;
+        MHA_APPLY_ROPE_BWD(gK, k_idx * kv_dim, pos, pc.num_kv, pc.head_dim, pc.rope_theta);
+      }
+    }
+  }
+  for (int tok = 0; tok < bs; ++tok) {
+    int k_idx = tok % pc.msl;
+    for (int i = 0; i < kv_dim; ++i) {
+      gK_out[tok * kv_dim + i] = float(gK[k_idx * kv_dim + i]);
+      gV_out[tok * kv_dim + i] = float(gV[k_idx * kv_dim + i]);
+    }
+  }
+}

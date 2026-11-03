@@ -1,0 +1,28 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+#include "welvet_activate.inc"
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer GyBuf {
+  float gy[];
+};
+layout(set = 0, binding = 1) readonly buffer PreBuf {
+  float pre[];
+};
+layout(set = 0, binding = 2) writeonly buffer DPreBuf {
+  float d_pre[];
+};
+
+layout(push_constant) uniform Push {
+  int act;
+  int n;
+} pc;
+
+void main() {
+  uint idx = gl_GlobalInvocationID.x;
+  if (int(idx) >= pc.n) return;
+  double g = double(gy[idx]) * welvet_activate_deriv_dev(pc.act, double(pre[idx]));
+  d_pre[idx] = float(g);
+}

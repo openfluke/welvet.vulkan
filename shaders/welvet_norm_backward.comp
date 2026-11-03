@@ -1,0 +1,71 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer XBuf {
+  float x[];
+};
+layout(set = 0, binding = 1) readonly buffer GammaBuf {
+  double gamma[];
+};
+layout(set = 0, binding = 2) readonly buffer PreBuf {
+  float pre[];
+};
+layout(set = 0, binding = 3) readonly buffer GyBuf {
+  float gy[];
+};
+layout(set = 0, binding = 4) writeonly buffer GxBuf {
+  float gx[];
+};
+
+layout(push_constant) uniform Push {
+  int n_tok;
+  int dim;
+  double eps;
+  int center;
+} pc;
+
+void main() {
+  uint t = gl_GlobalInvocationID.x;
+  if (int(t) >= pc.n_tok) return;
+  int base = int(t) * pc.dim;
+  double sum = 0.0;
+  double sum_sq = 0.0;
+  for (int i = 0; i < pc.dim; ++i) {
+    double v = double(x[base + i]);
+    sum += v;
+    sum_sq += v * v;
+  }
+  double inv;
+  if (pc.center != 0) {
+    double mean = sum / double(pc.dim);
+    double var_ = sum_sq / double(pc.dim) - mean * mean;
+    inv = 1.0 / sqrt(var_ + pc.eps);
+  } else {
+    inv = 1.0 / sqrt(sum_sq / double(pc.dim) + pc.eps);
+  }
+  double sum_dxh = 0.0;
+  double sum_dxh_xh = 0.0;
+  for (int i = 0; i < pc.dim; ++i) {
+    double u = gamma[i] * double(gy[base + i]);
+    double xh = double(pre[base + i]);
+    sum_dxh += u;
+    sum_dxh_xh += u * xh;
+  }
+  double n = double(pc.dim);
+  if (pc.center != 0) {
+    for (int i = 0; i < pc.dim; ++i) {
+      double xh = double(pre[base + i]);
+      double dxh = gamma[i] * double(gy[base + i]);
+      gx[base + i] = float(inv / n * (n * dxh - sum_dxh - xh * sum_dxh_xh));
+    }
+  } else {
+    double mean = sum_dxh_xh / n;
+    for (int i = 0; i < pc.dim; ++i) {
+      double xh = double(pre[base + i]);
+      double u = gamma[i] * double(gy[base + i]);
+      gx[base + i] = float(inv * (u - xh * mean));
+    }
+  }
+}

@@ -1,0 +1,37 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+#include "welvet_activate.inc"
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) buffer PreBuf {
+  float pre[];
+};
+layout(set = 0, binding = 1) writeonly buffer PostBuf {
+  float post[];
+};
+layout(set = 0, binding = 2) readonly buffer BiasBuf {
+  double bias[];
+};
+
+layout(push_constant) uniform Push {
+  int bias_len;
+  int act;
+  int batch;
+  int out_dim;
+  int has_bias;
+} pc;
+
+void main() {
+  uint idx = gl_GlobalInvocationID.x;
+  uint n = uint(pc.batch * pc.out_dim);
+  if (idx >= n) return;
+  uint o = idx % uint(pc.out_dim);
+  double v = double(pre[idx]);
+  if (pc.has_bias != 0 && int(o) < pc.bias_len) {
+    v += bias[o];
+    pre[idx] = float(v);
+  }
+  post[idx] = float(welvet_activate_dev(pc.act, v));
+}

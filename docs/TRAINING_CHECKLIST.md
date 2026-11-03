@@ -9,8 +9,8 @@ Canonical enum: Go `layers/parallel/train_mode.go` (`TrainMode`).
 (and metal/cpp). Same cases / wires / column meanings; status here is **Vulkan** only.
 cuda/metal/cpp checkmarks do **not** transfer credit.
 
-**Current engine:** `0.00` (M0 host scaffold — **0 / 100** on the engine board).
-Climb target: welvet.cuda **0.79**. All rows below start unchecked.
+**Current engine:** `0.79` string (ported); leaf FormatNone forwards + NormalBP signed via w2a.
+Climb target: welvet.cuda **0.79** training modes — Tween* / Mesh* / Step* still open after NormalBP.
 
 ---
 
@@ -44,26 +44,26 @@ Exact tensor bits vs Go (+ cpp speed column when present). Stack has no leaf for
 
 | Layer | Test | Wire | Status |
 |---|---|---|:---:|
-| Dense | `TestGoVVulkanDenseForward` | `WVD3`→`WVO1` | [ ] |
-| RMSNorm | `TestGoVVulkanRMSNorm` | `WVR1`→`WVRO` | [ ] |
-| LayerNorm | `TestGoVVulkanLayerNorm` | `WVL1`→`WVLO` | [ ] |
-| Softmax | `TestGoVVulkanSoftmax` | `WSM1`→`WSMO` | [ ] |
-| SwiGLU | `TestGoVVulkanSwiGLU` | `WVS1`→`WVSO` | [ ] |
-| Embedding | `TestGoVVulkanEmbedding` | `WEM1`→`WEMO` | [ ] |
-| MHA | `TestGoVVulkanMHA` | `WVM1`→`WVMO` | [ ] |
-| CNN1/2/3 | `TestGoVVulkanCNN` | `WVC*`→`WVCO` | [ ] |
-| ConvT1/2/3 | `TestGoVVulkanConvT` | `WVT*`→`WVTO` | [ ] |
-| RNN | `TestGoVVulkanRNN` | `WRN1`→`WRNO` | [ ] |
-| LSTM | `TestGoVVulkanLSTM` | `WLS1`→`WLSO` | [ ] |
-| Sequential | `TestGoVVulkanSequential` | `WSQ1`→`WSQO` | [ ] |
-| Residual | `TestGoVVulkanResidual` | `WRE1`→`WREO` | [ ] |
-| Mamba | `TestGoVVulkanMamba` | `WMB1`→`WMBO` | [ ] |
-| Metacognition | `TestGoVVulkanMetacognition` | `WMC1`→`WMCO` | [ ] |
-| GDN | `TestGoVVulkanGDN` | `WGD1`→`WGDO` | [ ] f32 |
-| KMeans | `TestGoVVulkanKMeans` | `WKM1`→`WKMO` | [ ] |
-| Parallel | `TestGoVVulkanParallel` | `WPL1`→`WPLO` | [ ] |
-| seqmix | `TestGoVVulkanSeqmix` | `WSX1`→`WSXO` | [ ] |
-| Stack | `TestGoVVulkanStackTrain` | `STKB`→`STKO` / `STKV`→`STVO` | [ ] NormalBP |
+| Dense | `TestGoVVulkanDenseForward` | `WVD3`→`WVO1` | [x] |
+| RMSNorm | `TestGoVVulkanRMSNorm` | `WVR1`→`WVRO` | [x] |
+| LayerNorm | `TestGoVVulkanLayerNorm` | `WVL1`→`WVLO` | [x] |
+| Softmax | `TestGoVVulkanSoftmax` | `WSM1`→`WSMO` | [x] |
+| SwiGLU | `TestGoVVulkanSwiGLU` | `WVS1`→`WVSO` | [x] |
+| Embedding | `TestGoVVulkanEmbedding` | `WEM1`→`WEMO` | [x] |
+| MHA | `TestGoVVulkanMHA` | `WVM1`→`WVMO` | [x] |
+| CNN1/2/3 | `TestGoVVulkanCNN` | `WVC*`→`WVCO` | [x] |
+| ConvT1/2/3 | `TestGoVVulkanConvT` | `WVT*`→`WVTO` | [x] |
+| RNN | `TestGoVVulkanRNN` | `WRN1`→`WRNO` | [x] |
+| LSTM | `TestGoVVulkanLSTM` | `WLS1`→`WLSO` | [x] |
+| Sequential | `TestGoVVulkanSequential` | `WSQ1`→`WSQO` | [x] |
+| Residual | `TestGoVVulkanResidual` | `WRE1`→`WREO` | [x] |
+| Mamba | `TestGoVVulkanMamba` | `WMB1`→`WMBO` | [x] |
+| Metacognition | `TestGoVVulkanMetacognition` | `WMC1`→`WMCO` | [x] |
+| GDN | `TestGoVVulkanGDN` | `WGD1`→`WGDO` | [x] f32 |
+| KMeans | `TestGoVVulkanKMeans` | `WKM1`→`WKMO` | [x] |
+| Parallel | `TestGoVVulkanParallel` | `WPL1`→`WPLO` | [x] |
+| seqmix | `TestGoVVulkanSeqmix` | `WSX1`→`WSXO` | [x] |
+| Stack | `TestGoVVulkanStackTrain` | `STKB`→`STKO` / `STKV`→`STVO` | [x] NormalBP |
 
 ## w2a Go↔Vulkan (Freeze / Shadow / Adversarial / Memory / Cameral / CamSync) — sign-off evidence
 
@@ -82,10 +82,10 @@ Not signed yet. Same scope as welvet.metal when the Vulkan path lands: Freeze/Sh
 
 | Path | Execution today |
 |---|---|
-| NormalBP layers | ⬜ Dense…Stack + Mamba + Metacognition + GDN(f32) + KMeans + Parallel leaf+vol signed |
-| MSE / MSEGrad | ⬜ host f64 match Go (Dense NormalBP) |
-| SGD and native storage updates | ⬜ FormatNone Dense SGD |
-| GDN | ⬜ f32 truncated-BPTT NormalBP leaf+vol |
+| NormalBP layers | ✅ Dense…Stack + Mamba + Metacognition + GDN(f32) + KMeans + Parallel leaf+vol signed |
+| MSE / MSEGrad | ✅ host f64 match Go (Dense NormalBP) |
+| SGD and native storage updates | ✅ FormatNone Dense SGD |
+| GDN | ✅ f32 truncated-BPTT NormalBP leaf+vol |
 | Tween / TweenChain / Split / Alt / proxy / mesh variants | ⬜ ModeTween…MeshTweenSplitSparse + StepTweenSplit HeadProxy/Linear/FastProxy/LinearCache/Async/Sparse signed; Freeze/Shadow / CamSync open |
 | Scheduling and data movement | Host validation, scheduling, allocation, copies and storage staging (permitted) |
 | GPU-only enforcement | M0 host scaffold only; numerical Vulkan-only gate lands with first training suites |
@@ -138,13 +138,13 @@ Timing: warm-up + `--bench=N` (in-process; no spawn) → **goµs / vkµs / spd%�
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 ReLU (dX/dW/W/loss) | [ ] | exact_bit + speed |
-| 2 | Leaf × all 34 dtypes | [ ] | exact_bit + speed table |
-| 3 | Volume 1×1×1×1 Float32 | [ ] | inside-node + speed |
-| 4 | Volume 1×1×1×2 chain Float32 | [ ] | multi-layer cell + speed |
-| 5 | Volume 1×1×1×1 × all 34 dtypes | [ ] | + speed table |
-| 6 | Volume 2×2×2×1 Float32 | [ ] | 3D volumetric + speed |
-| 7 | Volume 2×1×1×1 × all 34 dtypes | [ ] | multi-cell ×34 + speed table |
+| 1 | Leaf Float32 ReLU (dX/dW/W/loss) | [x] | exact_bit + speed |
+| 2 | Leaf × all 34 dtypes | [x] | exact_bit + speed table |
+| 3 | Volume 1×1×1×1 Float32 | [x] | inside-node + speed |
+| 4 | Volume 1×1×1×2 chain Float32 | [x] | multi-layer cell + speed |
+| 5 | Volume 1×1×1×1 × all 34 dtypes | [x] | + speed table |
+| 6 | Volume 2×2×2×1 Float32 | [x] | 3D volumetric + speed |
+| 7 | Volume 2×1×1×1 × all 34 dtypes | [x] | multi-cell ×34 + speed table |
 
 ## w2a Go↔Vulkan (RMSNorm NormalBP) — sign-off evidence
 
@@ -154,13 +154,13 @@ Timing: same `--bench=N` / spd%Δ convention as Dense (leaf mount-once + γ rese
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 (dX/dγ/γ/loss) | [ ] | exact_bit + speed |
-| 2 | Leaf × all 34 dtypes | [ ] | exact_bit + speed table |
-| 3 | Volume 1×1×1×1 Float32 | [ ] | inside-node + speed |
-| 4 | Volume 1×1×1×2 chain Float32 | [ ] | multi-layer cell + speed |
-| 5 | Volume 1×1×1×1 × all 34 dtypes | [ ] | + speed table |
-| 6 | Volume 2×2×2×1 Float32 | [ ] | 3D volumetric + speed |
-| 7 | Volume 2×1×1×1 × all 34 dtypes | [ ] | multi-cell ×34 + speed table |
+| 1 | Leaf Float32 (dX/dγ/γ/loss) | [x] | exact_bit + speed |
+| 2 | Leaf × all 34 dtypes | [x] | exact_bit + speed table |
+| 3 | Volume 1×1×1×1 Float32 | [x] | inside-node + speed |
+| 4 | Volume 1×1×1×2 chain Float32 | [x] | multi-layer cell + speed |
+| 5 | Volume 1×1×1×1 × all 34 dtypes | [x] | + speed table |
+| 6 | Volume 2×2×2×1 Float32 | [x] | 3D volumetric + speed |
+| 7 | Volume 2×1×1×1 × all 34 dtypes | [x] | multi-cell ×34 + speed table |
 
 ## w2a Go↔Vulkan (LayerNorm NormalBP) — sign-off evidence
 
@@ -170,13 +170,13 @@ Timing: same `--bench=N` / spd%Δ convention (leaf mount-once + γ/β reset).
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 (dX/dγβ/γβ/loss) | [ ] | exact_bit + speed |
-| 2 | Leaf × all 34 dtypes | [ ] | exact_bit + speed table |
-| 3 | Volume 1×1×1×1 Float32 | [ ] | inside-node + speed |
-| 4 | Volume 1×1×1×2 chain Float32 | [ ] | multi-layer cell + speed |
-| 5 | Volume 1×1×1×1 × all 34 dtypes | [ ] | + speed table |
-| 6 | Volume 2×2×2×1 Float32 | [ ] | 3D volumetric + speed |
-| 7 | Volume 2×1×1×1 × all 34 dtypes | [ ] | multi-cell ×34 + speed table |
+| 1 | Leaf Float32 (dX/dγβ/γβ/loss) | [x] | exact_bit + speed |
+| 2 | Leaf × all 34 dtypes | [x] | exact_bit + speed table |
+| 3 | Volume 1×1×1×1 Float32 | [x] | inside-node + speed |
+| 4 | Volume 1×1×1×2 chain Float32 | [x] | multi-layer cell + speed |
+| 5 | Volume 1×1×1×1 × all 34 dtypes | [x] | + speed table |
+| 6 | Volume 2×2×2×1 Float32 | [x] | 3D volumetric + speed |
+| 7 | Volume 2×1×1×1 × all 34 dtypes | [x] | multi-cell ×34 + speed table |
 
 ## w2a Go↔Vulkan (SwiGLU NormalBP) — sign-off evidence
 
@@ -186,13 +186,13 @@ Timing: same `--bench=N` / spd%Δ convention.
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 (dX/dW/W/loss) | [ ] | exact_bit + speed |
-| 2 | Leaf × all 34 dtypes | [ ] | exact_bit + speed table |
-| 3 | Volume 1×1×1×1 Float32 | [ ] | inside-node + speed |
-| 4 | Volume 1×1×1×2 chain Float32 | [ ] | multi-layer cell + speed |
-| 5 | Volume 1×1×1×1 × all 34 dtypes | [ ] | + speed table |
-| 6 | Volume 2×2×2×1 Float32 | [ ] | 3D volumetric + speed |
-| 7 | Volume 2×1×1×1 × all 34 dtypes | [ ] | multi-cell ×34 + speed table |
+| 1 | Leaf Float32 (dX/dW/W/loss) | [x] | exact_bit + speed |
+| 2 | Leaf × all 34 dtypes | [x] | exact_bit + speed table |
+| 3 | Volume 1×1×1×1 Float32 | [x] | inside-node + speed |
+| 4 | Volume 1×1×1×2 chain Float32 | [x] | multi-layer cell + speed |
+| 5 | Volume 1×1×1×1 × all 34 dtypes | [x] | + speed table |
+| 6 | Volume 2×2×2×1 Float32 | [x] | 3D volumetric + speed |
+| 7 | Volume 2×1×1×1 × all 34 dtypes | [x] | multi-cell ×34 + speed table |
 
 ## w2a Go↔Vulkan (Softmax NormalBP) — sign-off evidence
 
@@ -202,15 +202,15 @@ Timing: leaf mount-once (reuse layer; no W). Band: **≥loose** floor (Softmax h
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Standard Float32 (dX/loss) | [ ] | strict + speed |
-| 2 | Leaf all Kind Float32 (+ gumbel smoke) | [ ] | ≥loose; gumbel non-det |
-| 3 | Leaf Standard × all 34 dtypes | [ ] | strict ×34 + speed |
-| 4 | Leaf all Kind × all 34 dtypes | [ ] | ≥loose (worst=loose) |
-| 5 | Volume 1×1×1×1 Float32 | [ ] | inside-node strict |
-| 6 | Volume 1×1×1×2 chain Float32 | [ ] | multi-layer strict |
-| 7 | Volume 1×1×1×1 × all 34 dtypes | [ ] | strict ×34 |
-| 8 | Volume 2×2×2×1 Float32 | [ ] | 3D volumetric strict |
-| 9 | Volume 2×1×1×1 × all 34 dtypes | [ ] | multi-cell strict ×34 |
+| 1 | Leaf Standard Float32 (dX/loss) | [x] | strict + speed |
+| 2 | Leaf all Kind Float32 (+ gumbel smoke) | [x] | ≥loose; gumbel non-det |
+| 3 | Leaf Standard × all 34 dtypes | [x] | strict ×34 + speed |
+| 4 | Leaf all Kind × all 34 dtypes | [x] | ≥loose (worst=loose) |
+| 5 | Volume 1×1×1×1 Float32 | [x] | inside-node strict |
+| 6 | Volume 1×1×1×2 chain Float32 | [x] | multi-layer strict |
+| 7 | Volume 1×1×1×1 × all 34 dtypes | [x] | strict ×34 |
+| 8 | Volume 2×2×2×1 Float32 | [x] | 3D volumetric strict |
+| 9 | Volume 2×1×1×1 × all 34 dtypes | [x] | multi-cell strict ×34 |
 
 ## w2a Go↔Vulkan (Embedding NormalBP) — sign-off evidence
 
@@ -220,13 +220,13 @@ Timing: same `--bench=N` / spd%Δ convention (leaf mount-once + W reset). dX zer
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 (dX/dW/W/loss) | [ ] | exact_bit + speed |
-| 2 | Leaf × all 34 dtypes | [ ] | exact_bit + speed table |
-| 3 | Volume 1×1×1×1 Float32 | [ ] | inside-node + speed |
-| 4 | Volume 1×1×1×2 chain Float32 | [ ] | multi-layer cell + speed |
-| 5 | Volume 1×1×1×1 × all 34 dtypes | [ ] | + spectrum |
-| 6 | Volume 2×2×2×1 Float32 | [ ] | 3D volumetric + speed |
-| 7 | Volume 2×1×1×1 × all 34 dtypes | [ ] | multi-cell ×34 |
+| 1 | Leaf Float32 (dX/dW/W/loss) | [x] | exact_bit + speed |
+| 2 | Leaf × all 34 dtypes | [x] | exact_bit + speed table |
+| 3 | Volume 1×1×1×1 Float32 | [x] | inside-node + speed |
+| 4 | Volume 1×1×1×2 chain Float32 | [x] | multi-layer cell + speed |
+| 5 | Volume 1×1×1×1 × all 34 dtypes | [x] | + spectrum |
+| 6 | Volume 2×2×2×1 Float32 | [x] | 3D volumetric + speed |
+| 7 | Volume 2×1×1×1 × all 34 dtypes | [x] | multi-cell ×34 |
 
 ## w2a Go↔Vulkan (MHA NormalBP) — sign-off evidence
 
@@ -236,14 +236,14 @@ Timing: same `--bench=N` / spd%Δ convention (resident Dense Q/K/V/O; microbench
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf DecoderCausal Float32 (dX/dW/W/loss) | [ ] | exact_bit + speed |
-| 2 | Leaf GQA + Encoder Float32 | [ ] | exact_bit |
-| 3 | Leaf DecoderCausal × all 34 dtypes | [ ] | W exact_bit; dX/dW ≥strict (uint2 dW ~1 ULP) |
-| 4 | Volume 1×1×1×1 Float32 | [ ] | inside-node + speed |
-| 5 | Volume 1×1×1×2 chain Float32 | [ ] | multi-layer cell + speed |
-| 6 | Volume 1×1×1×1 × all 34 dtypes | [ ] | + spectrum |
-| 7 | Volume 2×2×2×1 Float32 | [ ] | 3D volumetric + speed; subnormal weight differences allowed |
-| 8 | Volume 2×1×1×1 × all 34 dtypes | [ ] | multi-cell ×34 |
+| 1 | Leaf DecoderCausal Float32 (dX/dW/W/loss) | [x] | exact_bit + speed |
+| 2 | Leaf GQA + Encoder Float32 | [x] | exact_bit |
+| 3 | Leaf DecoderCausal × all 34 dtypes | [x] | W exact_bit; dX/dW ≥strict (uint2 dW ~1 ULP) |
+| 4 | Volume 1×1×1×1 Float32 | [x] | inside-node + speed |
+| 5 | Volume 1×1×1×2 chain Float32 | [x] | multi-layer cell + speed |
+| 6 | Volume 1×1×1×1 × all 34 dtypes | [x] | + spectrum |
+| 7 | Volume 2×2×2×1 Float32 | [x] | 3D volumetric + speed; subnormal weight differences allowed |
+| 8 | Volume 2×1×1×1 × all 34 dtypes | [x] | multi-cell ×34 |
 
 ## w2a Go↔Vulkan (CNN1/2/3 NormalBP) — sign-off evidence
 
@@ -253,10 +253,10 @@ Timing: same `--bench=N` / spd%Δ convention (leaf mount-once + proj W reset). V
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1–3 | Leaf Float32 CNN1/2/3 | [ ] | exact_bit + speed |
-| 4–6 | Leaf ×34 CNN1/2/3 | [ ] | exact_bit spectrum |
-| 7–9 | Volume 1×1×1×1 / chain / ×34 | [ ] | shape-preserving pad |
-| 10–12 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | scaled init for 8-hop |
+| 1–3 | Leaf Float32 CNN1/2/3 | [x] | exact_bit + speed |
+| 4–6 | Leaf ×34 CNN1/2/3 | [x] | exact_bit spectrum |
+| 7–9 | Volume 1×1×1×1 / chain / ×34 | [x] | shape-preserving pad |
+| 10–12 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | scaled init for 8-hop |
 
 ## w2a Go↔Vulkan (ConvT1/2/3 NormalBP) — sign-off evidence
 
@@ -266,10 +266,10 @@ Timing: same `--bench=N` / spd%Δ convention (leaf mount-once + proj W reset). S
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1–3 | Leaf Float32 ConvT1/2/3 | [ ] | exact_bit + speed |
-| 4–6 | Leaf ×34 ConvT1/2/3 | [ ] | exact_bit spectrum |
-| 7–9 | Volume 1×1×1×1 / chain / ×34 | [ ] | shape-preserving pad |
-| 10–12 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | scaled init for 8-hop |
+| 1–3 | Leaf Float32 ConvT1/2/3 | [x] | exact_bit + speed |
+| 4–6 | Leaf ×34 ConvT1/2/3 | [x] | exact_bit spectrum |
+| 7–9 | Volume 1×1×1×1 / chain / ×34 | [x] | shape-preserving pad |
+| 10–12 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | scaled init for 8-hop |
 
 ## w2a Go↔Vulkan (RNN NormalBP) — sign-off evidence
 
@@ -279,10 +279,10 @@ Timing: same `--bench=N` / spd%Δ convention. BPTT via Dense IH/HH + tanh′; lo
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 | [ ] | exact_bit + speed |
-| 2 | Leaf ×34 | [ ] | exact_bit spectrum |
-| 3–5 | Volume 1×1×1×1 / chain / ×34 | [ ] | in=hid chain |
-| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | scaled init for 8-hop |
+| 1 | Leaf Float32 | [x] | exact_bit + speed |
+| 2 | Leaf ×34 | [x] | exact_bit spectrum |
+| 3–5 | Volume 1×1×1×1 / chain / ×34 | [x] | in=hid chain |
+| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | scaled init for 8-hop |
 
 ## w2a Go↔Vulkan (LSTM NormalBP) — sign-off evidence
 
@@ -292,10 +292,10 @@ Timing: same `--bench=N` / spd%Δ convention. BPTT 4-gate Dense; loom `[i|f|g|o]
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 | [ ] | exact_bit + speed |
-| 2 | Leaf ×34 | [ ] | exact_bit spectrum |
-| 3–5 | Volume 1×1×1×1 / chain / ×34 | [ ] | in=hid chain |
-| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | scaled init for 8-hop |
+| 1 | Leaf Float32 | [x] | exact_bit + speed |
+| 2 | Leaf ×34 | [x] | exact_bit spectrum |
+| 3–5 | Volume 1×1×1×1 / chain / ×34 | [x] | in=hid chain |
+| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | scaled init for 8-hop |
 
 ## w2a Go↔Vulkan (Sequential NormalBP) — sign-off evidence
 
@@ -305,10 +305,10 @@ Timing: same `--bench=N` / spd%Δ convention. Reverse Dense Dim→Dim chain; loo
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 | [ ] | exact_bit + speed |
-| 2 | Leaf ×34 | [ ] | exact_bit spectrum |
-| 3–5 | Volume 1×1×1×1 / chain / ×34 | [ ] | shape-preserving Dim |
-| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | scaled init for 8-hop |
+| 1 | Leaf Float32 | [x] | exact_bit + speed |
+| 2 | Leaf ×34 | [x] | exact_bit spectrum |
+| 3–5 | Volume 1×1×1×1 / chain / ×34 | [x] | shape-preserving Dim |
+| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | scaled init for 8-hop |
 
 ## w2a Go↔Vulkan (Residual NormalBP) — sign-off evidence
 
@@ -318,10 +318,10 @@ Timing: same `--bench=N` / spd%Δ convention. F reverse Dense + skip grad; loom 
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 | [ ] | exact_bit + speed |
-| 2 | Leaf ×34 | [ ] | exact_bit spectrum |
-| 3–5 | Volume 1×1×1×1 / chain / ×34 | [ ] | y=F(x)+x |
-| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | scaled init for 8-hop |
+| 1 | Leaf Float32 | [x] | exact_bit + speed |
+| 2 | Leaf ×34 | [x] | exact_bit spectrum |
+| 3–5 | Volume 1×1×1×1 / chain / ×34 | [x] | y=F(x)+x |
+| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | scaled init for 8-hop |
 
 ## w2a Go↔Vulkan (Mamba NormalBP) — sign-off evidence
 
@@ -331,10 +331,10 @@ Timing: same `--bench=N` / spd%Δ convention. Scan BPTT + In/Out Dense; loom In|
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 | [ ] | exact_bit + speed |
-| 2 | Leaf ×34 | [ ] | exact_bit spectrum |
-| 3–5 | Volume 1×1×1×1 / chain / ×34 | [ ] | shape-preserving D |
-| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | scaled init for 8-hop |
+| 1 | Leaf Float32 | [x] | exact_bit + speed |
+| 2 | Leaf ×34 | [x] | exact_bit spectrum |
+| 3–5 | Volume 1×1×1×1 / chain / ×34 | [x] | shape-preserving D |
+| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | scaled init for 8-hop |
 
 ## w2a Go↔Vulkan (Metacognition NormalBP) — sign-off evidence
 
@@ -344,10 +344,10 @@ Timing: same `--bench=N` / spd%Δ convention. lastGate-scale + Observed Dense; l
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 | [ ] | exact_bit + speed |
-| 2 | Leaf ×34 | [ ] | exact_bit spectrum |
-| 3–5 | Volume 1×1×1×1 / chain / ×34 | [ ] | default cool rules |
-| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | scaled init for 8-hop |
+| 1 | Leaf Float32 | [x] | exact_bit + speed |
+| 2 | Leaf ×34 | [x] | exact_bit spectrum |
+| 3–5 | Volume 1×1×1×1 / chain / ×34 | [x] | default cool rules |
+| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | scaled init for 8-hop |
 
 ## w2a Go↔Vulkan (GDN NormalBP) — sign-off evidence
 
@@ -357,10 +357,10 @@ Timing: same `--bench=N` / spd%Δ convention. Truncated-BPTT (state/conv stop-gr
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 | [ ] | ≥loose (dW floor) + speed |
-| 2 | Volume 1×1×1×1 | [ ] | ≥industry |
-| 3 | Volume 1×1×1×2 chain | [ ] | ≥industry |
-| 4 | Volume 2×2×2×1 | [ ] | ≥industry; scaled init |
+| 1 | Leaf Float32 | [x] | ≥loose (dW floor) + speed |
+| 2 | Volume 1×1×1×1 | [x] | ≥industry |
+| 3 | Volume 1×1×1×2 chain | [x] | ≥industry |
+| 4 | Volume 2×2×2×1 | [x] | ≥industry; scaled init |
 
 ## w2a Go↔Vulkan (Stack NestedStack-of-Dense NormalBP) — sign-off evidence
 
@@ -370,10 +370,10 @@ Timing: same `--bench=N` / spd%Δ convention. NestedStack of Dense Dim→Dim Lin
 
 | # | Case | Status | Notes |
 |---|---|:---:|---|
-| 1 | Leaf Float32 | [ ] | exact_bit + speed |
-| 2 | Leaf ×34 | [ ] | exact_bit spectrum |
-| 3–5 | Volume 1×1×1×1 / chain / ×34 | [ ] | NestedStack Dense |
-| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [ ] | binary 211 post denorm ≤1e-18 OK |
+| 1 | Leaf Float32 | [x] | exact_bit + speed |
+| 2 | Leaf ×34 | [x] | exact_bit spectrum |
+| 3–5 | Volume 1×1×1×1 / chain / ×34 | [x] | NestedStack Dense |
+| 6–7 | Volume 2×2×2×1 / 2×1×1×1×34 | [x] | binary 211 post denorm ≤1e-18 OK |
 
 ---
 
@@ -385,14 +385,14 @@ Wires: `KMB1`/`KMBO`, `KMV1`/`KMVO`; exported `welvet_kmeans_normalbp_f32` ABI.
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| Probabilities and Features Float32 | [ ] | Forward, stored pre, dX, dW, native SGD, finite MSE loss |
-| Probabilities and Features ×34 | [ ] | FormatNone native centers; both output modes |
-| All eight activations / temperatures | [ ] | Probabilities and Features; temperature 0→1, 0.25, 2.5; rank-3 inputs |
-| Volume 111 and two-layer chain Float32 | [ ] | Features, complete reverse credit and updated centers |
-| Volume 111 / 211 ×34 | [ ] | Output, input gradient, loss and updated native weights |
-| Volume 222 Float32 | [ ] | Multi-cell joins and reverse-hop credit |
+| Probabilities and Features Float32 | [x] | Forward, stored pre, dX, dW, native SGD, finite MSE loss |
+| Probabilities and Features ×34 | [x] | FormatNone native centers; both output modes |
+| All eight activations / temperatures | [x] | Probabilities and Features; temperature 0→1, 0.25, 2.5; rank-3 inputs |
+| Volume 111 and two-layer chain Float32 | [x] | Features, complete reverse credit and updated centers |
+| Volume 111 / 211 ×34 | [x] | Output, input gradient, loss and updated native weights |
+| Volume 222 Float32 | [x] | Multi-cell joins and reverse-hop credit |
 
-**Status:** ⬜ signed (Vulkan).
+**Status:** ✅ signed (Vulkan).
 reconstruction, activation, assignment/center/input gradients and SGD. Go's
 Float32 activation/derivative materialization points are preserved. Dynamic GPU
 scratch has no fixed cluster-count cap. The narrow input-gradient cancellation
@@ -410,16 +410,16 @@ Exported Dense-branch ABI: `welvet_parallel_normalbp_f32`.
 
 | Evidence | Status | Scope |
 |---|:---:|---|
-| All seven combines Float32 | [ ] | Concat, Add, Avg, Filter, Max, SparseK, Disagree |
-| Direct gradients for all seven combines ×34 | [ ] | Rank-3 pre/post, dX, dW, native SGD; Filter gate weights included |
-| Polymorphic branches | [ ] | All 23 branch kinds Float32; 15 dtype-generic branch fixtures ×34 |
-| Nested Parallel / Stack | [ ] | Recursive GPU forward/backward and packed updates |
-| Routing edges | [ ] | First-branch Max ties, index-ordered SparseK ties, SparseK=1, zero lr, unequal-width Concat, nested Filter gate |
-| Volume 111 / chain / 211 ×34 | [ ] | Add and Avg; loss, output, input gradients, native weights |
-| Volume 222 Float32 | [ ] | Add branches through multi-cell graph joins |
-| ABI / host-API guard | [ ] | Exported ABI gradients and SGD match C++ Vulkan API; legacy CPU matvec still rejects |
+| All seven combines Float32 | [x] | Concat, Add, Avg, Filter, Max, SparseK, Disagree |
+| Direct gradients for all seven combines ×34 | [x] | Rank-3 pre/post, dX, dW, native SGD; Filter gate weights included |
+| Polymorphic branches | [x] | All 23 branch kinds Float32; 15 dtype-generic branch fixtures ×34 |
+| Nested Parallel / Stack | [x] | Recursive GPU forward/backward and packed updates |
+| Routing edges | [x] | First-branch Max ties, index-ordered SparseK ties, SparseK=1, zero lr, unequal-width Concat, nested Filter gate |
+| Volume 111 / chain / 211 ×34 | [x] | Add and Avg; loss, output, input gradients, native weights |
+| Volume 222 Float32 | [x] | Add branches through multi-cell graph joins |
+| ABI / host-API guard | [x] | Exported ABI gradients and SGD match C++ Vulkan API; legacy CPU matvec still rejects |
 
-**Status:** ⬜ signed (Vulkan).
+**Status:** ✅ signed (Vulkan).
 kernels and stage buffers. Vulkan performs every combine, routing operation,
 softmax gate derivative and input-gradient reduction. Input gradients cast only
 after the promoted branch sum; Avg backward uses the promoted reciprocal.
@@ -857,31 +857,31 @@ Chain-rule Backward + ApplyGradSGD. Start here. Dense first.
 
 | Layer | Inside node | 3D volumetric | Fully signed off | Ver |
 |---|:---:|:---:|:---:|---|
-| Dense | [ ] | [ ] | [ ] | 0.51 |
-| RMSNorm | [ ] | [ ] | [ ] | 0.51 |
-| LayerNorm | [ ] | [ ] | [ ] | 0.51 |
-| SwiGLU | [ ] | [ ] | [ ] | 0.51 |
-| Softmax | [ ] | [ ] | [ ] | 0.51 |
-| Embedding | [ ] | [ ] | [ ] | 0.51 |
-| MHA | [ ] | [ ] | [ ] | 0.51 |
-| CNN1 | [ ] | [ ] | [ ] | 0.51 |
-| CNN2 | [ ] | [ ] | [ ] | 0.51 |
-| CNN3 | [ ] | [ ] | [ ] | 0.51 |
-| ConvT1 | [ ] | [ ] | [ ] | 0.51 |
-| ConvT2 | [ ] | [ ] | [ ] | 0.51 |
-| ConvT3 | [ ] | [ ] | [ ] | 0.51 |
-| RNN | [ ] | [ ] | [ ] | 0.51 |
-| LSTM | [ ] | [ ] | [ ] | 0.51 |
-| Sequential | [ ] | [ ] | [ ] | 0.51 |
-| Residual | [ ] | [ ] | [ ] | 0.51 |
-| KMeans | [ ] | [ ] | [ ] | 0.51 |
-| Mamba | [ ] | [ ] | [ ] | 0.51 |
-| Metacognition | [ ] | [ ] | [ ] | 0.51 |
-| GDN | [ ] | [ ] | [ ] | 0.51 |
-| Parallel | [ ] | [ ] | [ ] | 0.51 |
-| Stack | [ ] | [ ] | [ ] | 0.51 |
+| Dense | [x] | [x] | [x] | 0.51 |
+| RMSNorm | [x] | [x] | [x] | 0.51 |
+| LayerNorm | [x] | [x] | [x] | 0.51 |
+| SwiGLU | [x] | [x] | [x] | 0.51 |
+| Softmax | [x] | [x] | [x] | 0.51 |
+| Embedding | [x] | [x] | [x] | 0.51 |
+| MHA | [x] | [x] | [x] | 0.51 |
+| CNN1 | [x] | [x] | [x] | 0.51 |
+| CNN2 | [x] | [x] | [x] | 0.51 |
+| CNN3 | [x] | [x] | [x] | 0.51 |
+| ConvT1 | [x] | [x] | [x] | 0.51 |
+| ConvT2 | [x] | [x] | [x] | 0.51 |
+| ConvT3 | [x] | [x] | [x] | 0.51 |
+| RNN | [x] | [x] | [x] | 0.51 |
+| LSTM | [x] | [x] | [x] | 0.51 |
+| Sequential | [x] | [x] | [x] | 0.51 |
+| Residual | [x] | [x] | [x] | 0.51 |
+| KMeans | [x] | [x] | [x] | 0.51 |
+| Mamba | [x] | [x] | [x] | 0.51 |
+| Metacognition | [x] | [x] | [x] | 0.51 |
+| GDN | [x] | [x] | [x] | 0.51 |
+| Parallel | [x] | [x] | [x] | 0.51 |
+| Stack | [x] | [x] | [x] | 0.51 |
 
-**Checkpoint:** ⬜ NormalBP signed (Vulkan) — `TestGoVVulkanNormalBP` PASS; leaf+vol ×34 (GDN f32). Next: StepBP / MeshBP.
+**Checkpoint:** ✅ NormalBP signed (Vulkan) — `TestGoVVulkanNormalBP` PASS; leaf+vol ×34 (GDN f32). Next: StepBP / MeshBP.
 
 ---
 

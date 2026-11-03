@@ -1,0 +1,55 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+#include "welvet_activate.inc"
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer XBuf {
+  float x[];
+};
+layout(set = 0, binding = 1) readonly buffer WBuf {
+  float w[];
+};
+layout(set = 0, binding = 2) writeonly buffer PreBuf {
+  float pre[];
+};
+layout(set = 0, binding = 3) writeonly buffer PostBuf {
+  float post[];
+};
+
+layout(push_constant) uniform Push {
+  int batch;
+  int in_c;
+  int filters;
+  int seq;
+  int out_len;
+  int kernel;
+  int stride;
+  int padding;
+  int act;
+} pc;
+
+void main() {
+  uint tid = gl_GlobalInvocationID.x;
+  int n_out = pc.batch * pc.filters * pc.out_len;
+  if (int(tid) >= n_out) return;
+  int b = int(tid) / (pc.filters * pc.out_len);
+  int rem = int(tid) - b * pc.filters * pc.out_len;
+  int f = rem / pc.out_len;
+  int ow = rem - f * pc.out_len;
+  double sum = 0.0;
+  for (int ic = 0; ic < pc.in_c; ++ic) {
+    for (int iw = 0; iw < pc.seq; ++iw) {
+      double xv = double(x[b * pc.in_c * pc.seq + ic * pc.seq + iw]);
+      for (int kk = 0; kk < pc.kernel; ++kk) {
+        if (iw * pc.stride - pc.padding + kk != ow) continue;
+        int kw_idx = f * pc.in_c * pc.kernel + ic * pc.kernel + kk;
+        sum += xv * double(w[kw_idx]);
+      }
+    }
+  }
+  float p = float(sum);
+  pre[tid] = p;
+  post[tid] = float(welvet_activate_dev(pc.act, double(p)));
+}

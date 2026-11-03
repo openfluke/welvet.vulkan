@@ -2,7 +2,7 @@
 
 #include "vulkan/internal.hpp"
 
-#include "generated/embedded_spirv.hpp"
+#include "vulkan/pipelines.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -148,8 +148,20 @@ Status create_device(Runtime* rt) {
   qci.queueCount = 1;
   qci.pQueuePriorities = &priority;
 
+  VkPhysicalDeviceFeatures supported{};
+  vkGetPhysicalDeviceFeatures(rt->physical, &supported);
+  if (!supported.shaderFloat64) {
+    return Status::Err(StatusCode::Unsupported,
+                       "shaderFloat64 unavailable — required for Welvet f64-accumulate Dense path");
+  }
+  rt->shader_float64 = true;
+
+  VkPhysicalDeviceFeatures enabled{};
+  enabled.shaderFloat64 = VK_TRUE;
+
   VkDeviceCreateInfo dci{};
   dci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  dci.pEnabledFeatures = &enabled;
   dci.queueCreateInfoCount = 1;
   dci.pQueueCreateInfos = &qci;
 
@@ -181,67 +193,15 @@ Status create_device(Runtime* rt) {
 
   VkDescriptorPoolSize pool_size{};
   pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  pool_size.descriptorCount = 64;
+  pool_size.descriptorCount = 4096;
   VkDescriptorPoolCreateInfo dpci{};
   dpci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   dpci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-  dpci.maxSets = 32;
+  dpci.maxSets = 512;
   dpci.poolSizeCount = 1;
   dpci.pPoolSizes = &pool_size;
   return vk_check(vkCreateDescriptorPool(rt->device, &dpci, nullptr, &rt->descriptor_pool),
                   "vkCreateDescriptorPool");
-}
-
-Status create_saxpy_pipeline(Runtime* rt) {
-  VkShaderModuleCreateInfo smci{};
-  smci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  smci.codeSize = welvet::vulkan::spirv::kSmokeSaxpySize;
-  smci.pCode = reinterpret_cast<const std::uint32_t*>(welvet::vulkan::spirv::kSmokeSaxpy);
-  auto st = vk_check(vkCreateShaderModule(rt->device, &smci, nullptr, &rt->saxpy_module),
-                     "vkCreateShaderModule");
-  if (!st) return st;
-
-  VkDescriptorSetLayoutBinding binds[2]{};
-  binds[0].binding = 0;
-  binds[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  binds[0].descriptorCount = 1;
-  binds[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-  binds[1] = binds[0];
-  binds[1].binding = 1;
-
-  VkDescriptorSetLayoutCreateInfo dslci{};
-  dslci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  dslci.bindingCount = 2;
-  dslci.pBindings = binds;
-  st = vk_check(vkCreateDescriptorSetLayout(rt->device, &dslci, nullptr, &rt->saxpy_set_layout),
-                "vkCreateDescriptorSetLayout");
-  if (!st) return st;
-
-  VkPushConstantRange pcr{};
-  pcr.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-  pcr.offset = 0;
-  pcr.size = sizeof(float) * 2 + sizeof(std::uint32_t);
-
-  VkPipelineLayoutCreateInfo plci{};
-  plci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  plci.setLayoutCount = 1;
-  plci.pSetLayouts = &rt->saxpy_set_layout;
-  plci.pushConstantRangeCount = 1;
-  plci.pPushConstantRanges = &pcr;
-  st = vk_check(vkCreatePipelineLayout(rt->device, &plci, nullptr, &rt->saxpy_pipeline_layout),
-                "vkCreatePipelineLayout");
-  if (!st) return st;
-
-  VkComputePipelineCreateInfo cpci{};
-  cpci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-  cpci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  cpci.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-  cpci.stage.module = rt->saxpy_module;
-  cpci.stage.pName = "main";
-  cpci.layout = rt->saxpy_pipeline_layout;
-  return vk_check(
-      vkCreateComputePipelines(rt->device, VK_NULL_HANDLE, 1, &cpci, nullptr, &rt->saxpy_pipeline),
-      "vkCreateComputePipelines");
 }
 
 void build_identity(Runtime* rt) {
@@ -249,7 +209,8 @@ void build_identity(Runtime* rt) {
   os << "vulkan:" << rt->info.name << ":idx=" << rt->info.index
      << ":api=" << VK_VERSION_MAJOR(rt->info.api_version) << "."
      << VK_VERSION_MINOR(rt->info.api_version) << "." << VK_VERSION_PATCH(rt->info.api_version)
-     << ":type=" << rt->info.device_type << ":mem=" << rt->info.total_device_mem;
+     << ":type=" << rt->info.device_type << ":mem=" << rt->info.total_device_mem
+     << ":f64=" << (rt->shader_float64 ? 1 : 0);
   rt->identity = os.str();
 }
 
@@ -315,10 +276,10 @@ Status ensure_runtime() {
   if (!st) return st;
   st = create_device(&g_rt);
   if (!st) return st;
-  st = create_saxpy_pipeline(&g_rt);
-  if (!st) return st;
   build_identity(&g_rt);
   g_rt.ready = true;
+  // Pipelines compile lazily on first dispatch (avoid long init / lock issues).
+  (void)warm_pipelines_after_device;
   return Status::Ok();
 }
 

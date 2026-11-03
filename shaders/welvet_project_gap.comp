@@ -1,0 +1,30 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer SrcBuf {
+  float src[];
+};
+layout(set = 0, binding = 1) writeonly buffer DstBuf {
+  float dst[];
+};
+
+layout(push_constant) uniform Push {
+  uint sn;
+  uint dn;
+} pc;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= pc.dn) return;
+  uint lo_v = i * pc.sn / pc.dn;
+  uint hi_v = (i + 1u) * pc.sn / pc.dn;
+  if (hi_v <= lo_v) hi_v = lo_v + 1u;
+  if (hi_v > pc.sn) hi_v = pc.sn;
+  double sum = 0.0;
+  for (uint j = lo_v; j < hi_v; ++j) {
+    sum += double(src[j]);
+  }
+  dst[i] = float(sum / double(hi_v - lo_v));
+}

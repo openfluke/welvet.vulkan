@@ -18,16 +18,15 @@ struct Runtime {
   VkQueue compute_queue = VK_NULL_HANDLE;
   VkCommandPool command_pool = VK_NULL_HANDLE;
   VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-  VkDescriptorSetLayout saxpy_set_layout = VK_NULL_HANDLE;
-  VkPipelineLayout saxpy_pipeline_layout = VK_NULL_HANDLE;
-  VkPipeline saxpy_pipeline = VK_NULL_HANDLE;
-  VkShaderModule saxpy_module = VK_NULL_HANDLE;
   std::uint32_t compute_queue_family = 0;
   std::uint32_t host_visible_mem_type = UINT32_MAX;
+  bool shader_float64 = false;
   DeviceInfo info{};
   std::string identity = "vulkan:unavailable";
   bool ready = false;
 };
+
+void warm_pipelines_after_device();
 
 std::mutex& runtime_mu();
 Runtime& runtime();

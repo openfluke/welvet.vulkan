@@ -1,0 +1,38 @@
+#version 450
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer TokBuf {
+  float tokens[];
+};
+layout(set = 0, binding = 1) readonly buffer GradBuf {
+  float grad_out[];
+};
+layout(set = 0, binding = 2) writeonly buffer DWBuf {
+  float dW[];
+};
+
+layout(push_constant) uniform Push {
+  int n_tok;
+  int emb;
+  int vocab;
+  int in_last;
+} pc;
+
+void main() {
+  uint tid = gl_GlobalInvocationID.x;
+  uint n = uint(pc.vocab * pc.emb);
+  if (tid >= n) return;
+  uint row = tid / uint(pc.emb);
+  uint col = tid - row * uint(pc.emb);
+  float sum = 0.0;
+  for (int t = 0; t < pc.n_tok; ++t) {
+    int id = int(tokens[t * pc.in_last]);
+    if (id < 0) id = -id;
+    if (pc.vocab > 0) id = id % pc.vocab;
+    if (id == int(row)) {
+      sum += grad_out[uint(t) * uint(pc.emb) + col];
+    }
+  }
+  dW[tid] = sum;
+}

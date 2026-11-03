@@ -14,7 +14,7 @@ struct Entry {
   bool implemented;
 };
 
-// Full Vulkan rebuild runway inventory. Unimplemented rows are "gap?".
+// Full CUDA rebuild runway inventory. Unimplemented rows are "gap?".
 const std::vector<Entry>& all();
 std::size_t count_gaps();
 std::size_t count_done();

@@ -1,0 +1,36 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer BiasBuf {
+  double bias[];
+};
+layout(set = 0, binding = 1) readonly buffer AlphasBuf {
+  double alphas[];
+};
+layout(set = 0, binding = 2) writeonly buffer OutBuf {
+  double out_data[];
+};
+
+layout(push_constant) uniform Push {
+  uint n;
+  uint nb;
+} pc;
+
+void main() {
+  uint tid = gl_GlobalInvocationID.x;
+  if (tid >= pc.n) return;
+  double mean = 0.0;
+  for (uint k = 0u; k < pc.nb; ++k) mean += bias[k * pc.n + tid] / double(pc.nb);
+  for (uint k = 0u; k < pc.nb; ++k) {
+    double a = alphas[k];
+    double old = bias[k * pc.n + tid];
+    if (a <= 0.0) {
+      out_data[k * pc.n + tid] = old;
+      continue;
+    }
+    if (a > 1.0) a = 1.0;
+    out_data[k * pc.n + tid] = (1.0 - a) * old + a * mean;
+  }
+}

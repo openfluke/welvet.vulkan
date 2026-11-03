@@ -1,0 +1,51 @@
+# Generate embedded_spirv.hpp from parallel SHADER_NAMES and SHADER_SPV_PATHS lists.
+if(NOT DEFINED SHADER_NAMES OR NOT DEFINED SHADER_SPV_PATHS OR NOT DEFINED OUT_PATH)
+  message(FATAL_ERROR "gen_embedded_spirv.cmake requires SHADER_NAMES, SHADER_SPV_PATHS, OUT_PATH")
+endif()
+
+list(LENGTH SHADER_NAMES name_count)
+list(LENGTH SHADER_SPV_PATHS path_count)
+if(NOT name_count EQUAL path_count)
+  message(FATAL_ERROR "SHADER_NAMES/SHADER_SPV_PATHS length mismatch")
+endif()
+
+set(HEADER "#pragma once\n#include <cstddef>\n#include <cstdint>\n\nnamespace welvet::vulkan::spirv {\n\nstruct Blob {\n  const std::uint8_t* data;\n  std::size_t size;\n};\n\n")
+
+math(EXPR last "${name_count} - 1")
+foreach(i RANGE ${last})
+  list(GET SHADER_NAMES ${i} sym)
+  list(GET SHADER_SPV_PATHS ${i} spv_path)
+
+  if(NOT EXISTS "${spv_path}")
+    message(FATAL_ERROR "missing SPIR-V: ${spv_path}")
+  endif()
+
+  file(READ "${spv_path}" SPV_HEX HEX)
+  string(LENGTH "${SPV_HEX}" SPV_HEX_LEN)
+  math(EXPR SPV_BYTES "${SPV_HEX_LEN} / 2")
+  math(EXPR SPV_MOD "${SPV_BYTES} % 4")
+  if(NOT SPV_MOD EQUAL 0)
+    message(FATAL_ERROR "SPIR-V size not multiple of 4: ${SPV_BYTES} (${sym})")
+  endif()
+
+  set(BYTES "")
+  set(COL 0)
+  set(I 0)
+  while(I LESS SPV_HEX_LEN)
+    string(SUBSTRING "${SPV_HEX}" ${I} 2 BYTE)
+    string(APPEND BYTES "0x${BYTE},")
+    math(EXPR COL "${COL} + 1")
+    if(COL EQUAL 12)
+      string(APPEND BYTES "\n  ")
+      set(COL 0)
+    endif()
+    math(EXPR I "${I} + 2")
+  endwhile()
+
+  string(APPEND HEADER "inline constexpr std::uint8_t k${sym}[] = {\n  ${BYTES}\n};\n")
+  string(APPEND HEADER "inline constexpr std::size_t k${sym}Size = ${SPV_BYTES};\n")
+  string(APPEND HEADER "inline Blob ${sym}() { return {k${sym}, k${sym}Size}; }\n\n")
+endforeach()
+
+string(APPEND HEADER "} // namespace welvet::vulkan::spirv\n")
+file(WRITE "${OUT_PATH}" "${HEADER}")

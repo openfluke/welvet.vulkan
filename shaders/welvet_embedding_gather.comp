@@ -1,0 +1,41 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : enable
+
+#include "welvet_activate.inc"
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer TokBuf {
+  float tokens[];
+};
+layout(set = 0, binding = 1) readonly buffer WBuf {
+  float W[];
+};
+layout(set = 0, binding = 2) writeonly buffer OutBuf {
+  float out_data[];
+};
+
+layout(push_constant) uniform Push {
+  int n_tok;
+  int emb;
+  int vocab;
+  int in_last;
+  int act;
+} pc;
+
+void main() {
+  uint tid = gl_GlobalInvocationID.x;
+  uint n = uint(pc.n_tok * pc.emb);
+  if (tid >= n) return;
+  uint tok = tid / uint(pc.emb);
+  uint col = tid - tok * uint(pc.emb);
+  int id = int(tokens[tok * uint(pc.in_last)]);
+  if (id < 0) id = -id;
+  if (pc.vocab > 0) id = id % pc.vocab;
+  float v = W[uint(id) * uint(pc.emb) + col];
+  if (pc.act == -1) {
+    out_data[tid] = v;
+  } else {
+    out_data[tid] = float(welvet_activate_dev(pc.act, double(v)));
+  }
+}
