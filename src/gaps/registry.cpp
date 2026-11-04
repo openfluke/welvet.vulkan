@@ -14,6 +14,7 @@ const std::vector<Entry>& build() {
       {"vulkan.kernel.smoke", "vulkan", "Launch welvet_smoke_saxpy", true},
       {"abi.version", "interop", "welvet_version + welvet_vulkan_init C ABI", true},
       {"platform.linux", "platform", "Linux x86_64 Vulkan host build", true},
+      {"platform.android", "platform", "Android arm64-v8a + x86_64 Vulkan .so artifacts", true},
 
       // --- Core / weights (port from welvet.cpp / welvet.metal semantics) ---
       {"core.dtype.all34", "core", "all 34 DType names + FormatNone Dense forward gates", false},

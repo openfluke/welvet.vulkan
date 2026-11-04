@@ -18,4 +18,4 @@
 
 **Sibling map:** welvet (Go ref) · welvet.cpp (CPU) · welvet.metal (Apple GPU) · welvet.cuda (NVIDIA) · **welvet.vulkan** (this) · welvet.qnn · w2a.
 
-**Current pin:** **0.79** — install into Go via `./scripts/linux_install_go.sh` → `welvet/native/vulkan/linux_x86_64/libwelvet_vulkan.so`.
+**Current pin:** **0.79** — install into Go via `./scripts/linux_install_go.sh` → `welvet/native/vulkan/linux_x86_64/libwelvet_vulkan.so`; Android arm64 + x86_64 via `./scripts/android_install_go.sh` → `native/vulkan/android_{arm64,x86_64}/`.

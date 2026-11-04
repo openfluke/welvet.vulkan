@@ -11,8 +11,28 @@ option(WELVET_BUILD_SHARED "Build shared library (C ABI / NAC)" ON)
 option(WELVET_BUILD_TOOLS "Build CLI tools for w2a go_v_vulkan" ON)
 option(WELVET_BUILD_EXAMPLES "Build standalone Vulkan smoke examples" ON)
 
-find_package(Vulkan REQUIRED)
+# Desktop: LunarG / system Vulkan. Android NDK: sysroot headers + stub libvulkan.so.
+if(ANDROID)
+  if(NOT Vulkan_INCLUDE_DIR)
+    find_path(Vulkan_INCLUDE_DIR NAMES vulkan/vulkan.h
+      PATHS "${CMAKE_SYSROOT}/usr/include"
+      NO_DEFAULT_PATH
+      REQUIRED)
+  endif()
+  if(NOT Vulkan_LIBRARY)
+    find_library(Vulkan_LIBRARY NAMES vulkan REQUIRED)
+  endif()
+  if(NOT TARGET Vulkan::Vulkan)
+    add_library(Vulkan::Vulkan UNKNOWN IMPORTED)
+    set_target_properties(Vulkan::Vulkan PROPERTIES
+      IMPORTED_LOCATION "${Vulkan_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${Vulkan_INCLUDE_DIR}")
+  endif()
+else()
+  find_package(Vulkan REQUIRED)
+endif()
 
+# SPIR-V compile always uses the host glslc (even when cross-compiling for Android).
 find_program(WELVET_GLSLC glslc
   HINTS
     "$ENV{VULKAN_SDK}/bin"

@@ -12,7 +12,7 @@ It will run directly from C++ and through a stable C ABI. Go Welvet can later de
 | **Engine board** | **79 / 100** (same 10 categories as Go Welvet; train ladder accepted) |
 | **Compute** | Vulkan GPU (cross-vendor) — primary · CPU / CUDA / Metal / QNN siblings remain separate repos — never implied |
 | **Parity reference** | [welvet](https://github.com/openfluke/welvet) Go **v1.6.0** (100/100) |
-| **Go binding** | `nativevulkan` · `native/vulkan/linux_x86_64/libwelvet_vulkan.so` (model ABI **1**) |
+| **Go binding** | `nativevulkan` · `native/vulkan/{linux_x86_64,android_arm64,android_x86_64}/libwelvet_vulkan.so` (model ABI **1**) |
 | **Validation** | [w2a](https://github.com/openfluke/w2a) `go_v_vulkan` |
 
 **This README is the runway.** Every unchecked cell is planned Vulkan work. Tick ⬜ → 🚧 → ✅ here as gates land. **Training port detail** (per-mode × layer evidence, wire names, version log) lives in [docs/TRAINING_CHECKLIST.md](docs/TRAINING_CHECKLIST.md). [GAPS.md](GAPS.md) is the machine-oriented census mirror; [VERSIONING.md](VERSIONING.md) is the `0.x` formula. Pure-Vulkan contract: [docs/VULKAN_ONLY.md](docs/VULKAN_ONLY.md).
@@ -25,11 +25,13 @@ It will run directly from C++ and through a stable C ABI. Go Welvet can later de
 ./build/welvet_dense_fwd --version   # 0.79
 ./build/welvet_dense_fwd --identity
 ./build/welvet_dense_fwd --gaps
+./scripts/android_install_go.sh      # NDK → android_arm64 + android_x86_64 into sibling welvet
 ```
 
 | Slice | Status |
 |---|:---:|
 | Linux x86_64 CMake → `libwelvet_vulkan.so` | ✅ |
+| Android arm64-v8a + x86_64 NDK → Go `native/vulkan/android_*` | ✅ |
 | Vulkan device / host-visible buffers / smoke saxpy | ✅ |
 | C ABI version / init / available / gaps | ✅ |
 | Dense FormatNone×34 leaf forward | ⬜ |
