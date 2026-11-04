@@ -11,7 +11,7 @@ It will run directly from C++ and through a stable C ABI. Go Welvet can later de
 | **Version** | **`0.79.1`** |
 | **Engine board** | **79 / 100** (same 10 categories as Go Welvet; train ladder accepted) |
 | **Compute** | Vulkan GPU (cross-vendor) — primary · CPU / CUDA / Metal / QNN siblings remain separate repos — never implied |
-| **Parity reference** | [welvet](https://github.com/openfluke/welvet) Go **v1.6.0** (100/100) |
+| **Parity reference** | [welvet](https://github.com/openfluke/welvet) Go **v1.6.1** (100/100) |
 | **Go binding** | `nativevulkan` · `native/vulkan/{linux_x86_64,android_arm64,android_x86_64}/libwelvet_vulkan.so` (model ABI **1**) |
 | **Validation** | [w2a](https://github.com/openfluke/w2a) `go_v_vulkan` |
 

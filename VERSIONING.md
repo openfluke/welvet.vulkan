@@ -7,7 +7,7 @@
 |-----|---------|
 | **0.00** | Bedrock — Vulkan host scaffold; **0 / 100** on the engine board |
 | **0.79** | Train ladder accepted + Go `nativevulkan` pin (Welvet **v1.6.0**); model ABI **1**; Linux x86_64 |
-| **0.79.1** | Patch: Android arm64-v8a + x86_64 NDK `.so` into Go `native/vulkan/android_*` (board still **79**) |
+| **0.79.1** | Patch: Android arm64-v8a + x86_64 NDK `.so` into Go `native/vulkan/android_*` (board still **79**; Go Welvet **v1.6.1**) |
 | **0.x** | `round(earned)` from the engine table in [README.md](README.md) |
 | **1.0.0** | Engine board **100/100** — full Go parity on Vulkan (FormatNone path + Model/IO + Systems + CamSync + peak fused, or explicit gate rewrite) |
 

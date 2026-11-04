@@ -1982,6 +1982,6 @@ Run: `./scripts/linux_build_w2a.sh --training-25-29-all`.
 |-----|---------|
 | **0.00** (M0) | Vulkan host scaffold (device / buffers / smoke saxpy / C ABI / gaps). |
 | **0.79** | Train ladder + Go `nativevulkan` pin (Welvet **v1.6.0**). Full TRAINING_CHECKLIST signed; residency/perf remain separate gates. |
-| **0.79.1** | Patch: Android arm64-v8a + x86_64 NDK libs into Go `native/vulkan/android_*` (engine board still 79). |
+| **0.79.1** | Patch: Android arm64-v8a + x86_64 NDK libs into Go `native/vulkan/android_*` (engine board still 79; Go Welvet **v1.6.1**). |
 
 Prior cuda tags (0.13…0.79) are **not** inherited. Re-earn each gate on Vulkan evidence.
