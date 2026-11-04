@@ -25,7 +25,7 @@ INCLUDE_DIR="$WELVET_GO_ROOT/native/vulkan/include"
 mkdir -p "$INCLUDE_DIR"
 cp "$ROOT/include/welvet_c.h" "$INCLUDE_DIR/welvet_vulkan.h"
 
-VERSION="0.79"
+VERSION="0.79.1"
 if [[ -x "$ROOT/build/welvet_dense_fwd" ]]; then
   VERSION="$("$ROOT/build/welvet_dense_fwd" --version)"
 fi

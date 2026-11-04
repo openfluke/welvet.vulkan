@@ -51,8 +51,8 @@ welvet_status to_c(const welvet::Status& st) {
 extern "C" {
 
 const char* welvet_version(void) {
-  // ModeStepTweenSplit Line FamilyTweenSplit STS1 (TestGoVCudaStepTweenSplitTrain) → board 57/100.
-  return "0.79";
+  // 0.79 train ladder; 0.79.1 Android arm64 + x86_64 Go native/vulkan artifacts.
+  return "0.79.1";
 }
 
 const char* welvet_runtime_identity(void) {

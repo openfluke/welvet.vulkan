@@ -8,7 +8,7 @@ It will run directly from C++ and through a stable C ABI. Go Welvet can later de
 
 | | |
 |--|--|
-| **Version** | **`0.79`** |
+| **Version** | **`0.79.1`** |
 | **Engine board** | **79 / 100** (same 10 categories as Go Welvet; train ladder accepted) |
 | **Compute** | Vulkan GPU (cross-vendor) — primary · CPU / CUDA / Metal / QNN siblings remain separate repos — never implied |
 | **Parity reference** | [welvet](https://github.com/openfluke/welvet) Go **v1.6.0** (100/100) |
@@ -22,7 +22,7 @@ It will run directly from C++ and through a stable C ABI. Go Welvet can later de
 ```bash
 ./scripts/build_linux.sh
 ./build/example_vulkan_smoke
-./build/welvet_dense_fwd --version   # 0.79
+./build/welvet_dense_fwd --version   # 0.79.1
 ./build/welvet_dense_fwd --identity
 ./build/welvet_dense_fwd --gaps
 ./scripts/android_install_go.sh      # NDK → android_arm64 + android_x86_64 into sibling welvet

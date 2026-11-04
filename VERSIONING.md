@@ -7,6 +7,7 @@
 |-----|---------|
 | **0.00** | Bedrock — Vulkan host scaffold; **0 / 100** on the engine board |
 | **0.79** | Train ladder accepted + Go `nativevulkan` pin (Welvet **v1.6.0**); model ABI **1**; Linux x86_64 |
+| **0.79.1** | Patch: Android arm64-v8a + x86_64 NDK `.so` into Go `native/vulkan/android_*` (board still **79**) |
 | **0.x** | `round(earned)` from the engine table in [README.md](README.md) |
 | **1.0.0** | Engine board **100/100** — full Go parity on Vulkan (FormatNone path + Model/IO + Systems + CamSync + peak fused, or explicit gate rewrite) |
 
@@ -18,4 +19,4 @@
 
 **Sibling map:** welvet (Go ref) · welvet.cpp (CPU) · welvet.metal (Apple GPU) · welvet.cuda (NVIDIA) · **welvet.vulkan** (this) · welvet.qnn · w2a.
 
-**Current pin:** **0.79** — install into Go via `./scripts/linux_install_go.sh` → `welvet/native/vulkan/linux_x86_64/libwelvet_vulkan.so`; Android arm64 + x86_64 via `./scripts/android_install_go.sh` → `native/vulkan/android_{arm64,x86_64}/`.
+**Current pin:** **0.79.1** — install into Go via `./scripts/linux_install_go.sh` → `welvet/native/vulkan/linux_x86_64/libwelvet_vulkan.so`; Android arm64 + x86_64 via `./scripts/android_install_go.sh` → `native/vulkan/android_{arm64,x86_64}/`.

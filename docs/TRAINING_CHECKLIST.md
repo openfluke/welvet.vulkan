@@ -9,7 +9,7 @@ Canonical enum: Go `layers/parallel/train_mode.go` (`TrainMode`).
 (and metal/cpp). Same cases / wires / column meanings; status here is **Vulkan** only.
 cuda/metal/cpp checkmarks do **not** transfer credit.
 
-**Current engine:** `0.79` (leaf FormatNone + **all 29 TrainModes** + Freeze/Shadow/Cameral/CamSync accepted — **full TRAINING_CHECKLIST signed**). Implementation complete for Vulkan train surface; next work is residency/perf / product, not missing TrainModes.
+**Current engine:** `0.79.1` (leaf FormatNone + **all 29 TrainModes** + Freeze/Shadow/Cameral/CamSync accepted — **full TRAINING_CHECKLIST signed**; Android arm64/x86_64 artifacts). Implementation complete for Vulkan train surface; next work is residency/perf / product, not missing TrainModes.
 Code complete for welvet.vulkan training parity target vs cuda **0.79**. Remaining open items outside this checklist (perf, full GPU residency) are separate gates.
 
 ---
@@ -1982,5 +1982,6 @@ Run: `./scripts/linux_build_w2a.sh --training-25-29-all`.
 |-----|---------|
 | **0.00** (M0) | Vulkan host scaffold (device / buffers / smoke saxpy / C ABI / gaps). |
 | **0.79** | Train ladder + Go `nativevulkan` pin (Welvet **v1.6.0**). Full TRAINING_CHECKLIST signed; residency/perf remain separate gates. |
+| **0.79.1** | Patch: Android arm64-v8a + x86_64 NDK libs into Go `native/vulkan/android_*` (engine board still 79). |
 
 Prior cuda tags (0.13…0.79) are **not** inherited. Re-earn each gate on Vulkan evidence.

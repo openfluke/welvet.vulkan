@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(welvet_vulkan VERSION 0.79 LANGUAGES CXX)
+project(welvet_vulkan VERSION 0.79.1 LANGUAGES CXX)
 
 # Cross-vendor Welvet engine: C++ host + Vulkan compute.
 set(CMAKE_CXX_STANDARD 20)
